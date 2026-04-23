@@ -52,9 +52,9 @@ const findClosestJob = (query) => {
     .sort((a, b) => b.score - a.score)[0]?.job || null;
 };
 
-function NotificationPanel({ notifications, unreadCount, onClose, onOpenJob, onOpenNotice, onEnableBrowserAlerts }) {
+function NotificationPanel({ notifications, unreadCount, onClose, onOpenJob, onOpenNotice, onEnableBrowserAlerts, mobile }) {
   return (
-    <div style={{ position:"absolute", top:"calc(100% + 10px)", right:0, width:360, maxHeight:440, overflowY:"auto", background:"var(--cb-surface)", border:"1px solid var(--cb-border)", borderRadius:18, boxShadow:"0 24px 60px rgba(0,0,0,0.18)", padding:16, zIndex:30 }}>
+    <div style={{ position:"absolute", top:"calc(100% + 10px)", right:0, width:mobile ? "min(360px, calc(100vw - 24px))" : 360, maxHeight:440, overflowY:"auto", background:"var(--cb-surface)", border:"1px solid var(--cb-border)", borderRadius:18, boxShadow:"0 24px 60px rgba(0,0,0,0.18)", padding:16, zIndex:30 }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
         <div>
           <div style={{ fontSize:16, fontWeight:800, color:"var(--cb-text)" }}>Notifications</div>
@@ -95,18 +95,21 @@ function NotificationPanel({ notifications, unreadCount, onClose, onOpenJob, onO
 
 export default function Dashboard({ recruiterMode }) {
   const navigate  = useNavigate();
+  const [viewportW, setViewportW] = useState(() => window.innerWidth);
   const [sec,    setSec]      = useState("dashboard");
   const [col,    setCol]      = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hist,   setHist]     = useState(["dashboard"]);
   const [msgTarget,setMsgTarget]= useState(null);
   const rawUser  = JSON.parse(localStorage.getItem("user") || '{"name":"User","role":"seeker"}');
   const [user,   setUser]     = useState(rawUser);
   const isRec    = recruiterMode || user.role === "recruiter";
+  const isMobile = viewportW < 900;
   const [jobFilters, setJobFilters] = useState({ search:"", type:"All", category:"All", sort:"latest", spotlightId:null });
   const [notifications, setNotifications] = useState(() => readNotifications(rawUser));
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const goTo  = (key) => { setHist(p=>[...p,key]); setSec(key); };
+  const goTo  = (key) => { setHist(p=>[...p,key]); setSec(key); if (isMobile) setMobileMenuOpen(false); };
   const goBack= () => { if(hist.length>1){ const p=hist[hist.length-2]; setHist(h=>h.slice(0,-1)); setSec(p); } else navigate("/"); };
 
   const handleMessageUser = (target) => {
@@ -171,6 +174,16 @@ export default function Dashboard({ recruiterMode }) {
   useEffect(() => {
     setNotifications(readNotifications(user));
   }, [user]);
+
+  useEffect(() => {
+    const onResize = () => setViewportW(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) setMobileMenuOpen(false);
+  }, [isMobile]);
 
   useEffect(() => {
     if (isRec) return;
@@ -279,10 +292,26 @@ export default function Dashboard({ recruiterMode }) {
           }
         `}
       </style>
-      <Sidebar active={sec} onNavigate={goTo} collapsed={col} onToggle={()=>setCol(!col)} recruiterMode={isRec}/>
+      {isMobile && mobileMenuOpen && (
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          style={{ position:"fixed", inset:0, background:"rgba(2,6,23,0.55)", zIndex:110 }}
+        />
+      )}
+      <Sidebar
+        active={sec}
+        onNavigate={goTo}
+        collapsed={isMobile ? false : col}
+        onToggle={()=>isMobile ? setMobileMenuOpen(false) : setCol(!col)}
+        recruiterMode={isRec}
+        mobile={isMobile}
+        mobileOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      />
       <main style={S.main}>
-        <div style={S.topbar}>
-          <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
+        <div style={{...S.topbar,padding:isMobile ? "12px 14px" : S.topbar.padding,flexWrap:isMobile ? "wrap" : "nowrap",gap:isMobile ? "12px" : 0}}>
+          <div style={{display:"flex",alignItems:"center",gap:"12px",flex:1,minWidth:isMobile ? "100%" : "auto"}}>
+            {isMobile && <button onClick={()=>setMobileMenuOpen(true)} style={S.backBtn}>☰ Menu</button>}
             <button onClick={goBack} style={S.backBtn}>← Back</button>
             <div>
               <div style={S.pageTitle}>{TITLES[sec]||"Dashboard"}</div>
@@ -316,6 +345,7 @@ export default function Dashboard({ recruiterMode }) {
                 onOpenJob={openNotificationJob}
                 onOpenNotice={openNotificationNotice}
                 onEnableBrowserAlerts={enableBrowserAlerts}
+                mobile={isMobile}
               />
             )}
             <button onClick={()=>goTo("profile")} style={S.profileBtn}>
@@ -327,7 +357,7 @@ export default function Dashboard({ recruiterMode }) {
             </button>
           </div>
         </div>
-        <div style={S.content}>{render()}</div>
+        <div style={{...S.content,padding:isMobile ? "14px 12px 18px" : S.content.padding}}>{render()}</div>
       </main>
     </div>
   );

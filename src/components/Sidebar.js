@@ -32,10 +32,14 @@ export default function Sidebar({
   collapsed,
   onToggle,
   recruiterMode,
+  mobile = false,
+  mobileOpen = false,
+  onClose,
 }) {
   const navigate = useNavigate();
   const items = recruiterMode ? RECRUITER_NAV : SEEKER_NAV;
   const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const compact = collapsed && !mobile;
 
   const goHome = () => navigate("/");
   const logout = () => {
@@ -44,38 +48,62 @@ export default function Sidebar({
     navigate("/login");
   };
 
+  const handleNavigate = (key) => {
+    onNavigate(key);
+    if (mobile && onClose) onClose();
+  };
+
+  const handleHome = () => {
+    goHome();
+    if (mobile && onClose) onClose();
+  };
+
+  const handleLogout = () => {
+    logout();
+    if (mobile && onClose) onClose();
+  };
+
   return (
-    <aside style={{ ...s.root, width: collapsed ? "78px" : "264px" }}>
+    <aside
+      style={{
+        ...s.root,
+        width: mobile ? "280px" : compact ? "78px" : "264px",
+        position: mobile ? "fixed" : "sticky",
+        transform: mobile ? `translateX(${mobileOpen ? "0" : "-100%"})` : "none",
+        zIndex: mobile ? 120 : 20,
+        boxShadow: mobile ? "0 24px 60px rgba(0,0,0,0.35)" : s.root.boxShadow,
+      }}
+    >
       <div style={s.logoRow}>
         <div style={s.mark}>⚡</div>
-        {!collapsed && (
+        {!compact && (
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={s.name}>CareerBharat</div>
             <div style={s.sub}>AI PORTAL</div>
           </div>
         )}
-        <button onClick={onToggle} style={s.toggle} title="Toggle sidebar">
-          {collapsed ? "▶" : "◀"}
+        <button onClick={mobile ? onClose : onToggle} style={s.toggle} title="Toggle sidebar">
+          {mobile ? "✕" : compact ? "▶" : "◀"}
         </button>
       </div>
 
-      <div style={{ padding: collapsed ? "10px 10px 6px" : "12px 14px 8px" }}>
+      <div style={{ padding: compact ? "10px 10px 6px" : "12px 14px 8px" }}>
         <button
-          onClick={goHome}
+          onClick={handleHome}
           title="Back to Home"
           style={{
             ...s.homeBtn,
-            justifyContent: collapsed ? "center" : "flex-start",
-            padding: collapsed ? "11px" : "11px 14px",
+            justifyContent: compact ? "center" : "flex-start",
+            padding: compact ? "11px" : "11px 14px",
           }}
         >
           <span style={{ fontSize: "16px" }}>🏡</span>
-          {!collapsed && <span>Back to Home</span>}
+          {!compact && <span>Back to Home</span>}
         </button>
       </div>
 
-      {!collapsed && (
-        <div style={s.userCard} onClick={() => onNavigate("profile")}>
+      {!compact && (
+        <div style={s.userCard} onClick={() => handleNavigate("profile")}>
           <div style={s.avatar}>{(user.name || "U")[0].toUpperCase()}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={s.uName}>{user.name || "User"}</div>
@@ -88,37 +116,37 @@ export default function Sidebar({
       )}
 
       <nav style={s.nav}>
-        {!collapsed && <div style={s.navLabel}>Navigation</div>}
+        {!compact && <div style={s.navLabel}>Navigation</div>}
         {items.map((item) => {
-          const on = active === item.key;
+          const selected = active === item.key;
 
           return (
             <button
               key={item.key}
-              title={collapsed ? item.label : ""}
-              onClick={() => onNavigate(item.key)}
+              title={compact ? item.label : ""}
+              onClick={() => handleNavigate(item.key)}
               style={{
                 ...s.btn,
-                ...(on ? s.btnOn : {}),
-                justifyContent: collapsed ? "center" : "flex-start",
+                ...(selected ? s.btnOn : {}),
+                justifyContent: compact ? "center" : "flex-start",
               }}
             >
               <span style={s.navIcon}>{item.icon}</span>
-              {!collapsed && <span style={s.navText}>{item.label}</span>}
-              {!collapsed && on && <span style={s.dot} />}
+              {!compact && <span style={s.navText}>{item.label}</span>}
+              {!compact && selected && <span style={s.dot} />}
             </button>
           );
         })}
       </nav>
 
       <div style={s.bottom}>
-        {!collapsed && (
+        {!compact && (
           <div style={s.themeWrap}>
             <ThemeSwitcher />
           </div>
         )}
 
-        {!collapsed && (
+        {!compact && (
           <div style={s.aiBox}>
             <span style={{ fontSize: "16px" }}>🤖</span>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -130,15 +158,15 @@ export default function Sidebar({
         )}
 
         <button
-          onClick={logout}
-          title={collapsed ? "Logout" : ""}
+          onClick={handleLogout}
+          title={compact ? "Logout" : ""}
           style={{
             ...s.logoutBtn,
-            justifyContent: collapsed ? "center" : "flex-start",
+            justifyContent: compact ? "center" : "flex-start",
           }}
         >
           <span>🚪</span>
-          {!collapsed && <span>Logout</span>}
+          {!compact && <span>Logout</span>}
         </button>
       </div>
     </aside>
@@ -153,10 +181,10 @@ const s = {
     borderRight: "1px solid var(--border)",
     display: "flex",
     flexDirection: "column",
-    transition: "width 0.25s ease",
+    transition: "width 0.25s ease, transform 0.25s ease",
     flexShrink: 0,
-    position: "sticky",
     top: 0,
+    left: 0,
     overflow: "hidden",
     boxShadow: "inset -1px 0 0 rgba(var(--accent-rgb), 0.06)",
   },

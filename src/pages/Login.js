@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { API } from "../config";
 
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || "";
@@ -18,6 +18,7 @@ const RECRUITER_PERKS = [
 ];
 
 export default function Login() {
+  const [viewportW, setViewportW] = useState(() => window.innerWidth);
   const [role,    setRole]    = useState(null);
   const [mode,    setMode]    = useState("login");
   const [step,    setStep]    = useState(0);
@@ -30,8 +31,16 @@ export default function Login() {
   const [showGInfo, setShowGInfo] = useState(false);
 
   const isSk = role === "seeker";
+  const isMobile = viewportW < 768;
+  const isTablet = viewportW < 1024;
   const acc  = isSk ? "#3b82f6" : "#d4af37";
   const grad = isSk ? "linear-gradient(135deg,#1e3a8a,#2563eb)" : "linear-gradient(135deg,#92400e,#d4af37)";
+
+  useEffect(() => {
+    const onResize = () => setViewportW(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const pick = (r) => { setRole(r); setStep(1); setError(""); setSuccess(""); };
   const back = () => {
@@ -85,7 +94,7 @@ export default function Login() {
             if (!res.ok) throw new Error(data.error || "Google login failed");
             afterLogin(data);
           } catch (err) {
-            setError(err.message);
+            setError(friendlyFetchError(err));
           } finally {
             setGLoading(false);
           }
@@ -99,7 +108,7 @@ export default function Login() {
       });
     } catch (err) {
       setGLoading(false);
-      setError("Google login failed: " + err.message);
+      setError("Google login failed: " + friendlyFetchError(err));
     }
   };
 
@@ -114,6 +123,14 @@ export default function Login() {
       if (!isSk && !form.org.trim())     return "Organisation name is required.";
     }
     return null;
+  };
+
+  const friendlyFetchError = (err) => {
+    const msg = String(err?.message || "");
+    if (/failed to fetch|networkerror|load failed/i.test(msg)) {
+      return "Cannot reach the server. On mobile, open the app using your computer IP and make sure the backend is running on port 5000.";
+    }
+    return msg || "Something went wrong.";
   };
 
   const submit = async () => {
@@ -138,14 +155,14 @@ export default function Login() {
       if (!res.ok) throw new Error(data.error || "Something went wrong.");
       afterLogin(data);
     } catch (err) {
-      setError(err.message);
+      setError(friendlyFetchError(err));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={s.root}>
+    <div style={{ ...s.root, alignItems:isMobile ? "flex-start" : "center" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600;700&display=swap');
         @keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
@@ -159,7 +176,7 @@ export default function Login() {
       <div style={s.bgGrid}/>
 
       {/* Logo */}
-      <div style={s.logo}>
+      <div style={{ ...s.logo, top:isMobile ? "16px" : "22px", left:isMobile ? "16px" : "30px", right:isMobile ? "16px" : "auto", justifyContent:isMobile ? "center" : "flex-start" }}>
         <span style={{fontSize:"20px"}}>⚡</span>
         <span style={{fontSize:"18px",fontWeight:800,color:"#fff",fontFamily:"'Playfair Display',serif"}}>CareerBharat</span>
         <span style={s.badge}>AI</span>
@@ -167,16 +184,16 @@ export default function Login() {
 
       {/* ── STEP 0: Role Picker ── */}
       {step === 0 && (
-        <div style={s.center}>
+        <div style={{ ...s.center, padding:isMobile ? "88px 18px 40px" : "100px 40px 60px" }}>
           <div style={{textAlign:"center",marginBottom:"40px",animation:"fadeUp 0.5s ease both"}}>
             <div style={s.overline}>India's #1 AI Career Platform</div>
-            <h1 style={s.bigTitle}>I am a...</h1>
+            <h1 style={{ ...s.bigTitle, fontSize:isMobile ? "clamp(34px,12vw,52px)" : s.bigTitle.fontSize }}>I am a...</h1>
             <p style={{color:"#475569",fontSize:"15px"}}>Choose your role for a personalised experience</p>
           </div>
 
-          <div style={s.cardsRow}>
+          <div style={{ ...s.cardsRow, flexDirection:isMobile ? "column" : "row", flexWrap:isMobile ? "wrap" : "nowrap", maxWidth:isMobile ? "420px" : "800px", gap:isMobile ? "14px" : "18px" }}>
             {/* Seeker Card */}
-            <div className="rcard" onClick={()=>pick("seeker")} style={s.rcard}>
+            <div className="rcard" onClick={()=>pick("seeker")} style={{ ...s.rcard, width:isMobile ? "100%" : "320px" }}>
               <div style={{...s.rcTop,background:"linear-gradient(135deg,#0f2460,#1e40af)"}}>
                 <div style={s.rcEmoji}>🎓</div>
                 <div style={s.rcName}>Job Seeker</div>
@@ -195,14 +212,14 @@ export default function Login() {
             </div>
 
             {/* OR */}
-            <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"8px",flexShrink:0}}>
-              <div style={{width:"1px",flex:1,background:"rgba(255,255,255,0.07)"}}/>
+            <div style={{display:"flex",flexDirection:isMobile ? "row" : "column",alignItems:"center",justifyContent:"center",gap:"8px",flexShrink:0,width:isMobile ? "100%" : "auto"}}>
+              <div style={{width:isMobile ? "80px" : "1px",height:isMobile ? "1px" : "auto",flex:1,background:"rgba(255,255,255,0.07)"}}/>
               <span style={{fontSize:"11px",color:"#334155",fontWeight:700,letterSpacing:"2px"}}>OR</span>
-              <div style={{width:"1px",flex:1,background:"rgba(255,255,255,0.07)"}}/>
+              <div style={{width:isMobile ? "80px" : "1px",height:isMobile ? "1px" : "auto",flex:1,background:"rgba(255,255,255,0.07)"}}/>
             </div>
 
             {/* Recruiter Card */}
-            <div className="rcard" onClick={()=>pick("recruiter")} style={s.rcard}>
+            <div className="rcard" onClick={()=>pick("recruiter")} style={{ ...s.rcard, width:isMobile ? "100%" : "320px" }}>
               <div style={{...s.rcTop,background:"linear-gradient(135deg,#431407,#92400e)"}}>
                 <div style={s.rcEmoji}>🏢</div>
                 <div style={s.rcName}>Recruiter</div>
@@ -233,12 +250,12 @@ export default function Login() {
 
       {/* ── STEP 1: Login Form ── */}
       {step === 1 && (
-        <div style={s.split}>
+        <div style={{ ...s.split, flexDirection:isTablet ? "column" : "row" }}>
           {/* Left Panel */}
-          <div style={{...s.left,background:grad}}>
+          <div style={{...s.left,background:grad,width:isTablet ? "100%" : "42%",minHeight:isTablet ? "auto" : "100vh",padding:isMobile ? "88px 20px 28px" : isTablet ? "88px 28px 36px" : "80px 44px"}}>
             <div style={{position:"relative",zIndex:1}}>
               <div style={s.leftBadge}>{isSk?"🎓 Job Seeker Portal":"🏢 Recruiter Portal"}</div>
-              <h2 style={s.leftTitle}>{isSk?"Your Dream\nJob Awaits":"Find Your\nNext Star"}</h2>
+              <h2 style={{ ...s.leftTitle, fontSize:isMobile ? "clamp(28px,9vw,38px)" : s.leftTitle.fontSize }}>{isSk?"Your Dream\nJob Awaits":"Find Your\nNext Star"}</h2>
               <p style={s.leftSub}>
                 {isSk?"Join 1.2 lakh+ students using AI to land dream jobs across govt & private sectors."
                      :"Access India's largest verified talent pool with AI-powered candidate matching."}
@@ -267,10 +284,10 @@ export default function Login() {
           </div>
 
           {/* Right Form */}
-          <div style={s.right}>
-            <button onClick={back} style={s.backBtn}>← Change Role</button>
+          <div style={{ ...s.right, minHeight:isTablet ? "auto" : "100vh", padding:isMobile ? "24px 18px 42px" : "80px 36px" }}>
+            <button onClick={back} style={{ ...s.backBtn, top:isTablet ? "16px" : "22px", left:isTablet ? "18px" : "22px" }}>← Change Role</button>
 
-            <div style={{width:"100%",maxWidth:"420px",animation:"slideIn 0.4s ease both"}}>
+            <div style={{width:"100%",maxWidth:isMobile ? "100%" : "420px",animation:"slideIn 0.4s ease both",marginTop:isTablet ? "28px" : 0}}>
               {/* Role pill */}
               <div style={{display:"inline-block",background:isSk?"rgba(59,130,246,0.1)":"rgba(212,175,55,0.1)",border:`1px solid ${acc}44`,color:acc,padding:"5px 14px",borderRadius:"50px",fontSize:"12px",fontWeight:700,marginBottom:"20px"}}>
                 {isSk?"🎓 Job Seeker":"🏢 Recruiter"}
@@ -379,7 +396,7 @@ export default function Login() {
                 )}
 
                 {mode==="login" && (
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:isMobile ? "flex-start" : "center",flexDirection:isMobile ? "column" : "row",gap:isMobile ? "10px" : 0}}>
                     <label style={{display:"flex",alignItems:"center",gap:"7px",fontSize:"13px",color:"#64748b",cursor:"pointer"}}>
                       <input type="checkbox" style={{accentColor:acc}}/> Remember me
                     </label>

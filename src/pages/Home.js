@@ -33,16 +33,26 @@ const TESTIMONIALS = [
 ];
 
 export default function Home() {
+  const [viewportW, setViewportW] = useState(() => window.innerWidth);
   const [scrolled, setScrolled] = useState(false);
   const [hovered,  setHovered]  = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [chatMsg,  setChatMsg]  = useState("");
   const [chatLog,  setChatLog]  = useState([{ from:"ai", text:"Namaste! 🙏 I'm your AI Career Counselor. What's your education level and what kind of job are you looking for?" }]);
+  const isMobile = viewportW < 768;
+  const isTablet = viewportW < 1024;
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 60);
     window.addEventListener("scroll", fn);
     return () => window.removeEventListener("scroll", fn);
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => setViewportW(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   const sendChat = () => {
@@ -74,35 +84,47 @@ export default function Home() {
       <div style={s.glow2}/>
 
       {/* NAV */}
-      <nav style={{...s.nav,...(scrolled?s.navScroll:{})}}>
-        <div style={s.navInner}>
+      <nav style={{...s.nav,...(scrolled?s.navScroll:{}),padding:isMobile?"14px 16px":isTablet?"16px 24px":s.nav.padding}}>
+        <div style={{...s.navInner,flexWrap:isTablet?"wrap":"nowrap",gap:isTablet?"12px":"0"}}>
           <div style={s.logo}>
             <span style={s.logoMark}>⚡</span>
             <span style={s.logoName}>CareerBharat</span>
             <span style={s.logoBadge}>AI</span>
           </div>
-          <div style={s.navLinks}>
+          {!isTablet && <div style={s.navLinks}>
             {["Home","Jobs","Resources","Exam Prep","Career Advice","About"].map(l=>(
               <a key={l} className="nav-link" href="#" style={s.navLink}>{l}</a>
             ))}
-          </div>
-          <div style={{display:"flex",gap:"10px"}}>
+          </div>}
+          <div style={{display:"flex",gap:"10px",width:isTablet?"100%":"auto",justifyContent:isTablet?"space-between":"flex-start"}}>
+            {isTablet && (
+              <button onClick={()=>setMobileNavOpen(v=>!v)} style={s.btnOutline}>
+                {mobileNavOpen ? "Close" : "Menu"}
+              </button>
+            )}
             <button onClick={()=>window.location.href="/login"} style={s.btnOutline}>Login</button>
             <button onClick={()=>window.location.href="/login"} style={s.btnPrimary}>Get Started Free</button>
           </div>
         </div>
+        {isTablet && mobileNavOpen && (
+          <div style={{marginTop:"12px",display:"flex",flexWrap:"wrap",gap:"10px",background:"rgba(6,14,31,0.96)",border:"1px solid rgba(212,175,55,0.12)",borderRadius:"16px",padding:"14px"}}>
+            {["Home","Jobs","Resources","Exam Prep","Career Advice","About"].map((l)=>(
+              <a key={l} href="#" onClick={()=>setMobileNavOpen(false)} style={{...s.navLink,padding:"8px 10px",borderRadius:"999px",background:"rgba(255,255,255,0.04)"}}>{l}</a>
+            ))}
+          </div>
+        )}
       </nav>
 
       {/* HERO */}
-      <section style={s.hero}>
+      <section style={{...s.hero,flexDirection:isTablet?"column":"row",padding:isMobile?"108px 16px 54px":isTablet?"120px 24px 64px":s.hero.padding,gap:isTablet?"28px":"60px"}}>
         <div style={{flex:1,maxWidth:"600px",animation:"fadeUp 0.7s ease both"}}>
           <div style={s.heroBadge}><span style={{width:8,height:8,borderRadius:"50%",background:"#806b27",animation:"pulse 2s infinite",display:"inline-block"}}/> India's #1 AI-Powered Career Platform</div>
           <h1 style={s.heroTitle}>Your Dream Career<br/><span style={s.heroGold}>Starts Here</span></h1>
           <p style={s.heroSub}>From 10th class to post-graduate — find government jobs, private roles, exam resources & personalised AI career guidance. All in one place, completely free.</p>
-          <div style={s.searchBox}>
+          <div style={{...s.searchBox,flexDirection:isMobile?"column":"row",alignItems:isMobile?"stretch":"center",padding:isMobile?"12px":"8px 8px 8px 18px"}}>
             <span style={{fontSize:"16px"}}>🔍</span>
             <input style={s.searchInput} placeholder="Search jobs, exams, skills, career paths..."/>
-            <button onClick={()=>window.location.href="/login"} style={s.searchBtn}>Find Opportunities</button>
+            <button onClick={()=>window.location.href="/login"} style={{...s.searchBtn,width:isMobile?"100%":"auto"}}>Find Opportunities</button>
           </div>
           <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>
             {["SSC CGL","UPSC","Banking Jobs","IT Sector","Railway Jobs","State PSC",].map(t=>(
@@ -112,8 +134,8 @@ export default function Home() {
         </div>
 
         {/* Hero Card */}
-        <div style={{flex:1,display:"flex",justifyContent:"center",animation:"fadeUp 0.9s ease both"}}>
-          <div style={s.heroCard}>
+        <div style={{flex:1,display:"flex",justifyContent:"center",width:isTablet?"100%":"auto",animation:"fadeUp 0.9s ease both"}}>
+          <div style={{...s.heroCard,width:isMobile?"100%":"320px",maxWidth:"380px"}}>
             <div style={{display:"flex",gap:"6px",marginBottom:"18px"}}>
               {["#8644ef","#e3780d","#22c55e"].map(c=><div key={c} style={{width:12,height:12,borderRadius:"60%",background:c}}/>)}
             </div>
@@ -136,9 +158,9 @@ export default function Home() {
       </section>
 
       {/* STATS */}
-      <div style={s.statsBar}>
+      <div style={{...s.statsBar,flexWrap:isMobile?"wrap":"nowrap"}}>
         {STATS.map((st,i)=>(
-          <div key={i} style={{flex:1,textAlign:"center",padding:"36px 16px",borderRight:i<STATS.length-1?"1px solid rgba(212,175,55,0.1)":"none"}}>
+          <div key={i} style={{flex:isMobile?"1 1 50%":1,textAlign:"center",padding:isMobile?"24px 12px":"36px 16px",borderRight:!isMobile&&i<STATS.length-1?"1px solid rgba(212,175,55,0.1)":"none",borderBottom:isMobile&&i<STATS.length-2?"1px solid rgba(212,175,55,0.1)":"none"}}>
             <div style={{fontSize:"32px",fontWeight:900,color:"#d4af37",marginBottom:"5px"}}>{st.value}</div>
             <div style={{fontSize:"13px",color:"#475569"}}>{st.label}</div>
           </div>
@@ -206,7 +228,7 @@ export default function Home() {
       </section>
 
       {/* CTA */}
-      <section style={{textAlign:"center",padding:"80px 40px",position:"relative"}}>
+      <section style={{textAlign:"center",padding:isMobile?"56px 16px":"80px 40px",position:"relative"}}>
         <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:"500px",height:"250px",background:"radial-gradient(ellipse,rgba(212,175,55,0.1),transparent 70%)",pointerEvents:"none"}}/>
         <h2 style={{...s.sectionTitle,fontSize:"clamp(28px,4vw,48px)",marginBottom:"12px"}}>Start Your Career Journey Today</h2>
         <p style={{fontSize:"16px",color:"#64748b",marginBottom:"36px"}}>Join 1.2 lakh+ students already using CareerBharat to find their dream jobs</p>
@@ -217,8 +239,8 @@ export default function Home() {
       </section>
 
       {/* FOOTER */}
-      <footer style={{borderTop:"1px solid rgba(255,255,255,0.05)",padding:"50px 40px 24px",maxWidth:"1280px",margin:"0 auto"}}>
-        <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",gap:"40px",marginBottom:"36px",flexWrap:"wrap"}}>
+      <footer style={{borderTop:"1px solid rgba(255,255,255,0.05)",padding:isMobile?"40px 16px 24px":"50px 40px 24px",maxWidth:"1280px",margin:"0 auto"}}>
+        <div style={{display:"grid",gridTemplateColumns:isTablet?"1fr":"2fr 1fr 1fr 1fr",gap:isMobile?"24px":"40px",marginBottom:"36px",flexWrap:"wrap"}}>
           <div>
             <div style={s.logo}>
               <span style={s.logoMark}>⚡</span>
@@ -234,7 +256,7 @@ export default function Home() {
             </div>
           ))}
         </div>
-        <div style={{borderTop:"1px solid rgba(255,255,255,0.05)",paddingTop:"20px",display:"flex",justifyContent:"space-between",fontSize:"12px",color:"#1e293b"}}>
+        <div style={{borderTop:"1px solid rgba(255,255,255,0.05)",paddingTop:"20px",display:"flex",justifyContent:"space-between",flexDirection:isMobile?"column":"row",gap:isMobile?"8px":"0",fontSize:"12px",color:"#1e293b"}}>
           <span>© 2025 CareerBharat. Made with ❤️ for Bharat's students.</span>
           <span>Privacy · Terms · Contact</span>
         </div>
@@ -243,7 +265,7 @@ export default function Home() {
       {/* AI CHAT BUBBLE */}
       <div onClick={()=>setChatOpen(!chatOpen)} style={s.chatBubble}>{chatOpen?"✕":"🤖"}</div>
       {chatOpen && (
-        <div style={s.chatBox}>
+        <div style={{...s.chatBox,width:isMobile?"calc(100vw - 24px)":"320px",right:isMobile?"12px":"28px",bottom:isMobile?"84px":"96px"}}>
           <div style={s.chatHeader}>
             <span>🤖 AI Career Counselor</span>
             <span style={{fontSize:"12px",color:"#4ade80"}}>● Online</span>
