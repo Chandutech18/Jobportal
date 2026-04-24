@@ -128,7 +128,7 @@ export default function Login() {
   const friendlyFetchError = (err) => {
     const msg = String(err?.message || "");
     if (/failed to fetch|networkerror|load failed/i.test(msg)) {
-      return `Cannot reach the server at ${API}. On mobile, open the app with your computer IP, like http://192.168.x.x:3000, and make sure the backend is reachable on port 5000.`;
+      return `Cannot reach the server at ${API}. On mobile, open the app with your computer IP, like "http://10.79.174.190:5000", and make sure the backend is reachable on port 5000.`;
     }
     return msg || "Something went wrong.";
   };
