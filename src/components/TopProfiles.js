@@ -12,10 +12,19 @@ export default function TopProfiles({ recruiterMode, currentUser, onMessage }) {
   const [shortlisted, setShortlisted] = useState([]);
   const [actLoading,  setActLoading]  = useState("");
   const [toast,       setToast]       = useState("");
+  const [viewportW,   setViewportW]   = useState(() => window.innerWidth);
 
   const user  = currentUser || JSON.parse(localStorage.getItem("user") || "{}");
   const token = localStorage.getItem("token");
   const uKey  = user.id || user.email || "g";
+  const isMobile = viewportW < 760;
+  const isTablet = viewportW < 1100;
+
+  useEffect(() => {
+    const onResize = () => setViewportW(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   useEffect(() => {
     load();
@@ -81,7 +90,7 @@ export default function TopProfiles({ recruiterMode, currentUser, onMessage }) {
     <div>
       {/* Toast */}
       {toast && (
-        <div style={{ position:"fixed", top:"80px", right:"20px", background:"rgba(15,31,56,0.98)", border:"1px solid rgba(30,64,175,0.5)", color:"#fff", padding:"12px 20px", borderRadius:"12px", fontSize:"14px", fontWeight:600, zIndex:9999, boxShadow:"0 8px 32px rgba(0,0,0,0.5)" }}>
+        <div style={{ position:"fixed", top:isMobile ? "76px" : "80px", left:isMobile ? "12px" : "auto", right:isMobile ? "12px" : "20px", background:"rgba(15,31,56,0.98)", border:"1px solid rgba(30,64,175,0.5)", color:"#fff", padding:"12px 20px", borderRadius:"12px", fontSize:"14px", fontWeight:600, zIndex:9999, boxShadow:"0 8px 32px rgba(0,0,0,0.5)", textAlign:"center" }}>
           {toast}
         </div>
       )}
@@ -100,7 +109,7 @@ export default function TopProfiles({ recruiterMode, currentUser, onMessage }) {
 
       {/* Search + Filters */}
       <div style={{ display:"flex", gap:"10px", marginBottom:"18px", flexWrap:"wrap" }}>
-        <div style={S.searchBox}>
+        <div style={{...S.searchBox,minWidth:isMobile?"100%":"200px"}}>
           <span style={{ color:"#475569" }}>🔍</span>
           <input style={S.searchInput}
             placeholder={recruiterMode ? "Search by name, skill..." : "Search recruiters, companies..."}
@@ -119,7 +128,7 @@ export default function TopProfiles({ recruiterMode, currentUser, onMessage }) {
 
       {/* Shortlisted banner */}
       {recruiterMode && shortlisted.length > 0 && (
-        <div style={{ background:"rgba(212,175,55,0.08)", border:"1px solid rgba(212,175,55,0.2)", borderRadius:"12px", padding:"12px 16px", marginBottom:"16px", display:"flex", alignItems:"center", gap:"10px" }}>
+        <div style={{ background:"rgba(212,175,55,0.08)", border:"1px solid rgba(212,175,55,0.2)", borderRadius:"12px", padding:"12px 16px", marginBottom:"16px", display:"flex", alignItems:"center", gap:"10px", flexWrap:"wrap" }}>
           <span>✅</span>
           <span style={{ fontSize:"13px", fontWeight:700, color:"#d4af37" }}>Shortlisted: {shortlisted.length} candidates</span>
         </div>
@@ -152,7 +161,7 @@ export default function TopProfiles({ recruiterMode, currentUser, onMessage }) {
 
       {/* Profile cards */}
       {!loading && filtered.length > 0 && (
-        <div style={S.grid}>
+        <div style={{...S.grid,gridTemplateColumns:isMobile?"1fr":isTablet?"repeat(auto-fill,minmax(280px,1fr))":S.grid.gridTemplateColumns}}>
           {filtered.map((p, idx) => {
             const pid    = p.id || p._id;
             const isConn = connected.includes(pid);
@@ -216,14 +225,14 @@ export default function TopProfiles({ recruiterMode, currentUser, onMessage }) {
                   )}
 
                   {/* Profile link */}
-                  <div style={{ fontSize:"11px", color:"#334155", marginBottom:"14px", fontFamily:"monospace", background:"rgba(255,255,255,0.03)", padding:"7px 10px", borderRadius:"7px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                  <div style={{ fontSize:"11px", color:"#334155", marginBottom:"14px", fontFamily:"monospace", background:"rgba(255,255,255,0.03)", padding:"7px 10px", borderRadius:"7px", display:"flex", alignItems:isMobile?"flex-start":"center", justifyContent:"space-between", gap:"8px", flexDirection:isMobile?"column":"row" }}>
                     <span>🔗 careerbharat.in/profile/{uname}</span>
                     <button onClick={() => { navigator.clipboard?.writeText(`https://careerbharat.in/profile/${uname}`); showToast("📋 Copied!"); }}
                       style={{ background:"none", border:"none", color:"#475569", cursor:"pointer", fontSize:"11px" }}>Copy</button>
                   </div>
 
                   {/* Actions */}
-                  <div style={{ display:"flex", gap:"8px" }}>
+                  <div style={{ display:"flex", gap:"8px", flexDirection:isMobile?"column":"row" }}>
                     <button onClick={() => onMessage && onMessage({ id:pid, name:p.name, username:uname, role:p.role, org:p.organisation||p.org||"" })}
                       style={{ flex:1, background:"linear-gradient(135deg,#1e40af,#3b82f6)", color:"#fff", border:"none", borderRadius:"9px", padding:"10px", fontSize:"13px", fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", justifyContent:"center", gap:"6px" }}>
                       💬 Message
@@ -266,7 +275,7 @@ export default function TopProfiles({ recruiterMode, currentUser, onMessage }) {
                           </div>
                         </div>
                       ))}
-                      <div style={{ display:"flex", gap:"8px", marginTop:"14px" }}>
+                      <div style={{ display:"flex", gap:"8px", marginTop:"14px", flexDirection:isMobile?"column":"row" }}>
                         <button onClick={() => onMessage && onMessage({ id:pid, name:p.name, username:uname, role:p.role, org:p.organisation||p.org||"" })}
                           style={{ flex:1, background:"linear-gradient(135deg,#1e40af,#3b82f6)", color:"#fff", border:"none", borderRadius:"9px", padding:"11px", fontSize:"13px", fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
                           💬 Send Message

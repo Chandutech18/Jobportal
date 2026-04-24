@@ -37,9 +37,17 @@ export default function Chatbot() {
   const [input,   setInput]   = useState("");
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
+  const [viewportW, setViewportW] = useState(() => window.innerWidth);
   const endRef = useRef(null);
+  const isMobile = viewportW < 760;
+  const isTablet = viewportW < 1024;
 
   useEffect(()=>{ endRef.current?.scrollIntoView({ behavior:"smooth" }); }, [msgs, loading]);
+  useEffect(() => {
+    const onResize = () => setViewportW(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   function now() { return new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}); }
 
@@ -114,12 +122,12 @@ export default function Chatbot() {
     ));
 
   return (
-    <div style={s.root}>
+    <div style={{...s.root,height:isMobile?"calc(100dvh - 190px)":isTablet?"calc(100dvh - 170px)":s.root.height,minHeight:isMobile?"480px":s.root.minHeight}}>
       {/* Header */}
-      <div style={s.header}>
-        <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
+      <div style={{...s.header,flexWrap:isMobile?"wrap":"nowrap",gap:isMobile?"12px":"0"}}>
+        <div style={{display:"flex",alignItems:"center",gap:"12px",minWidth:0}}>
           <div style={s.avatar}>🤖</div>
-          <div>
+          <div style={{minWidth:0}}>
             <div style={{fontSize:"15px",fontWeight:800,color:"#fff"}}>CareerBot AI</div>
             <div style={{fontSize:"12px",color:"#64748b",display:"flex",alignItems:"center",gap:"6px"}}>
               <span style={{width:"7px",height:"7px",borderRadius:"50%",background:"#22c55e",display:"inline-block"}}/>
@@ -127,18 +135,18 @@ export default function Chatbot() {
             </div>
           </div>
         </div>
-        <button onClick={clear} style={s.clearBtn}>🗑 Clear</button>
+        <button onClick={clear} style={{...s.clearBtn,width:isMobile?"100%":"auto"}}>🗑 Clear</button>
       </div>
 
       {/* Error banner */}
       {error && <div style={s.errorBar}>{error}</div>}
 
       {/* Quick prompts */}
-      <div style={s.quickWrap}>
+      <div style={{...s.quickWrap,padding:isMobile?"10px 12px":"10px 16px"}}>
         <div style={{fontSize:"11px",color:"#334155",fontWeight:600,marginBottom:"7px"}}>
           Quick Questions →
         </div>
-        <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
+        <div style={{display:"flex",gap:"6px",flexWrap:isTablet?"nowrap":"wrap",overflowX:isTablet?"auto":"visible",paddingBottom:isTablet?"4px":"0"}}>
           {QUICK.map((q,i)=>(
             <button key={i} onClick={()=>send(q)} disabled={loading} style={s.quickBtn}>
               {q}
@@ -148,7 +156,7 @@ export default function Chatbot() {
       </div>
 
       {/* Messages */}
-      <div style={s.messages}>
+      <div style={{...s.messages,padding:isMobile?"14px 12px":"18px"}}>
         {msgs.map((m,i)=>(
           <div key={i} style={{display:"flex",flexDirection:"column",alignItems:m.from==="user"?"flex-end":"flex-start",gap:"3px"}}>
             {m.from==="ai" && (
@@ -156,7 +164,7 @@ export default function Chatbot() {
                 🤖 CareerBot {m.provider && <span style={{fontSize:"9px",color:"#334155"}}>({m.provider})</span>}
               </div>
             )}
-            <div style={{...s.bubble,...(m.from==="user"?s.userBubble:s.aiBubble)}}>
+            <div style={{...s.bubble,maxWidth:isMobile?"92%":s.bubble.maxWidth,...(m.from==="user"?s.userBubble:s.aiBubble)}}>
               {renderText(m.text)}
             </div>
             <div style={{fontSize:"10px",color:"#1e293b"}}>{m.time}</div>
@@ -181,7 +189,7 @@ export default function Chatbot() {
       </div>
 
       {/* Input */}
-      <div style={s.inputArea}>
+      <div style={{...s.inputArea,flexDirection:isMobile?"column":"row",padding:isMobile?"12px":"12px 16px"}}>
         <input
           style={s.input}
           value={input}
@@ -193,7 +201,7 @@ export default function Chatbot() {
         <button
           onClick={()=>send()}
           disabled={loading||!input.trim()}
-          style={{...s.sendBtn,opacity:loading||!input.trim()?0.5:1}}>
+          style={{...s.sendBtn,width:isMobile?"100%":s.sendBtn.width,opacity:loading||!input.trim()?0.5:1}}>
           {loading ? <span style={s.spinner}/> : "➤"}
         </button>
       </div>
@@ -205,7 +213,7 @@ export default function Chatbot() {
 }
 
 const s = {
-  root:      {display:"flex",flexDirection:"column",height:"calc(100vh - 130px)",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:"20px",overflow:"hidden"},
+  root:      {display:"flex",flexDirection:"column",height:"calc(100dvh - 150px)",minHeight:"520px",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:"20px",overflow:"hidden"},
   header:    {display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 20px",background:"linear-gradient(135deg,rgba(30,64,175,0.2),rgba(212,175,55,0.06))",borderBottom:"1px solid rgba(255,255,255,0.06)"},
   avatar:    {width:"44px",height:"44px",borderRadius:"12px",background:"linear-gradient(135deg,#1e40af,#3b82f6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"22px"},
   clearBtn:  {background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#64748b",padding:"7px 14px",borderRadius:"8px",fontSize:"12px",fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"},

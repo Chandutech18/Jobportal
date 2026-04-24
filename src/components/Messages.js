@@ -347,6 +347,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
   const [uploadProg,   setUploadProg]   = useState(0);
   const [callState,    setCallState]    = useState(CALL_IDLE);
   const [incomingCall, setIncomingCall] = useState(null);
+  const [viewportW,    setViewportW]    = useState(() => window.innerWidth);
 
   const endRef      = useRef(null);
   const inputRef    = useRef(null);
@@ -363,10 +364,18 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
   const callStateRef    = useRef(CALL_IDLE);
   const incomingCallRef = useRef(null);
   const token       = localStorage.getItem("token");
+  const isMobile    = viewportW < 820;
+  const isTablet    = viewportW < 1100;
+  const mediaPreviewWidth = Math.max(160, Math.min(240, viewportW - (isMobile ? 132 : 360)));
 
   useEffect(()=>{ activeRef.current = activeRoom; }, [activeRoom]);
   useEffect(()=>{ callStateRef.current = callState; }, [callState]);
   useEffect(()=>{ incomingCallRef.current = incomingCall; }, [incomingCall]);
+  useEffect(() => {
+    const onResize = () => setViewportW(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
   useEffect(()=>{
     if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current || null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStreamRef.current || null;
@@ -755,6 +764,8 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
   const filteredConvs = convs.filter(c=>!search||c.otherName?.toLowerCase().includes(search.toLowerCase()));
   const displayMsgs   = showMsgSearch&&msgSearch ? msgs.filter(m=>m.text?.toLowerCase().includes(msgSearch.toLowerCase())) : msgs;
   const totalUnread   = convs.reduce((a,c)=>a+(c.unread||0),0);
+  const showConversationPane = !isMobile || !activeRoom;
+  const showChatPane = !isMobile || Boolean(activeRoom);
 
   const renderBubble = (msg, i) => {
     const isMine  = String(msg.senderId)===String(user.id)||String(msg.senderId)===String(user.email)||msg.senderName===user.name;
@@ -769,17 +780,17 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
         {!isMine && <div style={{ fontSize:11, color:"var(--cb-muted)", fontWeight:600, paddingLeft:4 }}>{msg.senderName}</div>}
 
         {msg.replyTo&&!isDel&&(
-          <div style={{ maxWidth:"65%", padding:"5px 10px", background:"var(--cb-card)", borderLeft:`3px solid var(--cb-accent)`, borderRadius:8, fontSize:12, color:"var(--cb-muted)", marginBottom:3 }}>
+          <div style={{ maxWidth:isMobile ? "84%" : "65%", padding:"5px 10px", background:"var(--cb-card)", borderLeft:`3px solid var(--cb-accent)`, borderRadius:8, fontSize:12, color:"var(--cb-muted)", marginBottom:3 }}>
             ↩ {typeof msg.replyTo==="object"?(msg.replyTo?.text||"Message unavailable"):msg.replyTo}
           </div>
         )}
 
-        <div style={{ display:"flex", alignItems:"flex-end", gap:6, flexDirection:isMine?"row-reverse":"row", maxWidth:"80%" }}>
-          {!isMine && <Avatar name={msg.senderName} size={28}/>}
+        <div style={{ display:"flex", alignItems:"flex-end", gap:isMobile ? 4 : 6, flexDirection:isMine?"row-reverse":"row", maxWidth:isMobile ? "94%" : "80%" }}>
+          {!isMine && !isMobile && <Avatar name={msg.senderName} size={28}/>}
           <div style={{ minWidth:0, maxWidth:"100%", flexShrink:1 }}>
           <div
             onDoubleClick={()=>!isDel&&setReactTarget(reactTarget===msgId?null:msgId)}
-            style={{ padding:isDel?"8px 14px":"11px 16px", borderRadius:18, fontSize:14, lineHeight:1.55, wordBreak:"break-word", overflowWrap:"anywhere", whiteSpace:"normal", cursor:"pointer", transition:"transform 0.1s",
+            style={{ padding:isDel ? "8px 14px" : isMobile ? "10px 13px" : "11px 16px", borderRadius:18, fontSize:isMobile ? 13 : 14, lineHeight:1.55, wordBreak:"break-word", overflowWrap:"anywhere", whiteSpace:"normal", cursor:"pointer", transition:"transform 0.1s",
               ...(isDel ? { background:"var(--cb-card)", color:"var(--cb-muted)", fontStyle:"italic", border:"1px solid var(--cb-border)" }
                 : isMine ? { background:"linear-gradient(135deg,var(--cb-accent),var(--cb-accent2))", color:"#fff", borderBottomRightRadius:4, boxShadow:"0 2px 12px rgba(37,99,235,0.2)" }
                 : { background:"var(--cb-card)", border:"1px solid var(--cb-border)", color:"var(--cb-text)", borderBottomLeftRadius:4 })
@@ -788,10 +799,10 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
             {!isDel&&msg.type!=="text"&&msg.type!=="interview"&&(
               <div style={{ marginBottom:msg.text&&msg.type==="image"?6:0 }}>
                 {msg.type==="image"&&msg.fileUrl&&(
-                  <img src={`${API}${msg.fileUrl}`} alt={msg.fileName} style={{ maxWidth:220, maxHeight:180, borderRadius:10, display:"block" }} onError={e=>e.target.style.display="none"}/>
+                  <img src={`${API}${msg.fileUrl}`} alt={msg.fileName} style={{ maxWidth:mediaPreviewWidth, maxHeight:isMobile ? 150 : 180, borderRadius:10, display:"block" }} onError={e=>e.target.style.display="none"}/>
                 )}
-                {msg.type==="audio"&&<audio controls src={`${API}${msg.fileUrl}`} style={{ maxWidth:220 }}/>}
-                {msg.type==="video"&&<video controls src={`${API}${msg.fileUrl}`} style={{ maxWidth:220, maxHeight:160, borderRadius:10 }}/>}
+                {msg.type==="audio"&&<audio controls src={`${API}${msg.fileUrl}`} style={{ maxWidth:mediaPreviewWidth }}/>}
+                {msg.type==="video"&&<video controls src={`${API}${msg.fileUrl}`} style={{ maxWidth:mediaPreviewWidth, maxHeight:isMobile ? 140 : 160, borderRadius:10 }}/>}
                 {["pdf","file","doc"].includes(msg.type)&&(
                   <a href={`${API}${msg.fileUrl}`} target="_blank" rel="noreferrer" style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:"rgba(0,0,0,0.03)", borderRadius:12, textDecoration:"none", color:"var(--cb-text)" }}>
                     <span style={{ fontSize:26 }}>{fileIco(msg.type)}</span>
@@ -806,7 +817,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
                 <div style={{ fontSize:13, fontWeight:700, color:"var(--cb-gold)", marginBottom:8 }}>📅 Interview Invitation</div>
                 <div style={{ fontSize:12, color:"var(--cb-text)", lineHeight:1.7, whiteSpace:"pre-line" }}>{msg.text}</div>
                 {msg.interview&&!isMine&&msg.interview.status==="pending"&&(
-                  <div style={{ display:"flex", gap:8, marginTop:12 }}>
+                  <div style={{ display:"flex", gap:8, marginTop:12, flexDirection:isMobile ? "column" : "row" }}>
                     {[["accepted","✅ Accept","rgba(22,163,74,0.08)","rgba(22,163,74,0.2)","var(--cb-success)"],["declined","❌ Decline","rgba(220,38,38,0.05)","rgba(220,38,38,0.15)","var(--cb-danger)"]].map(([st,lbl,bg,bd,c])=>(
                       <button key={st} onClick={()=>fetch(`${API}/api/messages/interview/${msg._id}`,{method:"PUT",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({status:st})}).then(()=>setMsgs(p=>p.map(m=>String(m._id)===String(msg._id)?{...m,interview:{...m.interview,status:st}}:m)))}
                         style={{ flex:1, background:bg, border:`1px solid ${bd}`, color:c, borderRadius:8, padding:"8px 0", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
@@ -851,7 +862,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
         </div>
 
         {reactTarget===msgId&&!isDel&&(
-          <div style={{ position:"absolute", [isMine?"right":"left"]:0, top:-44, background:"var(--cb-surface)", border:"1px solid var(--cb-border)", borderRadius:50, padding:"5px 10px", display:"flex", gap:4, zIndex:100, boxShadow:"0 8px 24px rgba(0,0,0,0.08)" }}>
+          <div style={{ position:"absolute", [isMine?"right":"left"]:0, top:isMobile ? -38 : -44, background:"var(--cb-surface)", border:"1px solid var(--cb-border)", borderRadius:50, padding:isMobile ? "4px 8px" : "5px 10px", display:"flex", gap:4, zIndex:100, boxShadow:"0 8px 24px rgba(0,0,0,0.08)", maxWidth:isMobile ? "92vw" : "none", overflowX:"auto" }}>
             {QUICK_REACT.map(e=>(
               <button key={e} onClick={()=>react(msgId,e)}
                 style={{ background:"none", border:"none", fontSize:19, cursor:"pointer", lineHeight:1 }}
@@ -915,15 +926,16 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
       )}
 
       {toast&&(
-        <div style={{ position:"fixed", bottom:80, left:"50%", transform:"translateX(-50%)", background:"var(--cb-accent)", border:"1px solid rgba(37,99,235,0.5)", color:"#fff", padding:"10px 20px", borderRadius:50, fontSize:13, fontWeight:600, zIndex:9999, boxShadow:"0 8px 24px rgba(0,0,0,0.1)", whiteSpace:"nowrap", animation:"fadeUp 0.3s ease" }}>
+        <div style={{ position:"fixed", bottom:isMobile ? 26 : 80, left:"50%", transform:"translateX(-50%)", background:"var(--cb-accent)", border:"1px solid rgba(37,99,235,0.5)", color:"#fff", padding:isMobile ? "10px 16px" : "10px 20px", borderRadius:50, fontSize:13, fontWeight:600, zIndex:9999, boxShadow:"0 8px 24px rgba(0,0,0,0.1)", whiteSpace:isMobile ? "normal" : "nowrap", maxWidth:isMobile ? "calc(100vw - 28px)" : "none", textAlign:"center", animation:"fadeUp 0.3s ease" }}>
           {toast}
         </div>
       )}
 
-      <div style={{ height:"calc(100vh - 110px)", display:"flex", background:"var(--cb-bg)", border:"1px solid var(--cb-border)", borderRadius:20, overflow:"hidden", boxShadow:"0 8px 32px rgba(0,0,0,0.04)", fontFamily:"'DM Sans',sans-serif" }}>
+      <div style={{ height:isMobile ? "calc(100dvh - 132px)" : "calc(100vh - 110px)", minHeight:isMobile ? 520 : "auto", display:"flex", background:"var(--cb-bg)", border:"1px solid var(--cb-border)", borderRadius:isMobile ? 16 : 20, overflow:"hidden", boxShadow:"0 8px 32px rgba(0,0,0,0.04)", fontFamily:"'DM Sans',sans-serif" }}>
 
         {/* LEFT SIDEBAR */}
-        <div style={{ width:320, flexShrink:0, borderRight:"1px solid var(--cb-border)", display:"flex", flexDirection:"column", background:"var(--cb-surface)" }}>
+        {showConversationPane && (
+        <div style={{ width:isMobile ? "100%" : isTablet ? 300 : 320, flexShrink:0, borderRight:isMobile ? "none" : "1px solid var(--cb-border)", display:"flex", flexDirection:"column", background:"var(--cb-surface)" }}>
           <div style={{ padding:"16px 18px 12px", borderBottom:"1px solid var(--cb-border)" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
               <div style={{ fontSize:18, fontWeight:800, color:"var(--cb-text)", letterSpacing:"-0.5px" }}>
@@ -973,7 +985,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
                   <Avatar name={conv.otherName} size={44} online={isOnline(conv.otherId)}/>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
-                      <span style={{ fontSize:14, fontWeight:700, color:"var(--cb-text)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:160 }}>{conv.otherName||"User"}</span>
+                      <span style={{ fontSize:14, fontWeight:700, color:"var(--cb-text)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:isMobile ? 190 : 160 }}>{conv.otherName||"User"}</span>
                       <span style={{ fontSize:11, color:isActive?"var(--cb-accent)":"var(--cb-muted)", flexShrink:0, marginLeft:6 }}>{fmtTime(conv.lastTime)}</span>
                     </div>
                     <div style={{ fontSize:12, color:isActive?"var(--cb-accent)":"var(--cb-muted)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{typeof conv.lastMsg==="string"?conv.lastMsg:(conv.lastMsg?.text||"No messages yet")}</div>
@@ -988,16 +1000,18 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
             })}
           </div>
         </div>
+        )}
 
         {/* MAIN CHAT PANEL */}
+        {showChatPane && (
         <div style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0, background:"var(--cb-bg)" }}>
           {!activeRoom ? (
-            <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:40 }}>
-              <div style={{ fontSize:80, marginBottom:20, opacity:0.5 }}>💬</div>
-              <h3 style={{ fontSize:24, fontWeight:800, color:"var(--cb-text)", marginBottom:10, fontFamily:"'Playfair Display',serif" }}>
+            <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:isMobile ? 24 : 40, textAlign:"center" }}>
+              <div style={{ fontSize:isMobile ? 58 : 80, marginBottom:20, opacity:0.5 }}>💬</div>
+              <h3 style={{ fontSize:isMobile ? 20 : 24, fontWeight:800, color:"var(--cb-text)", marginBottom:10, fontFamily:"'Playfair Display',serif" }}>
                 {user.role==="recruiter" ? "Recruiter ↔ Candidate Chat" : "JobSeeker Messenger"}
               </h3>
-              <p style={{ fontSize:14, color:"var(--cb-muted)", lineHeight:1.8, maxWidth:340, textAlign:"center", marginBottom:28 }}>
+              <p style={{ fontSize:isMobile ? 13 : 14, color:"var(--cb-muted)", lineHeight:1.8, maxWidth:340, textAlign:"center", marginBottom:28 }}>
                 {user.role==="recruiter"
                   ? "Go to Candidate Pool → click 💬 Message on any profile to start a real-time conversation saved in MongoDB."
                   : "Go to Browse Jobs → click 💬 Message on any recruiter to connect instantly."}
@@ -1011,7 +1025,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
             </div>
           ) : (
             <>
-              <div style={{ display:"flex", alignItems:"center", gap:12, padding:"13px 18px", borderBottom:"1px solid var(--cb-border)", background:"var(--cb-surface)", flexShrink:0 }}>
+              <div style={{ display:"flex", alignItems:isMobile ? "flex-start" : "center", gap:12, padding:isMobile ? "12px 12px 10px" : "13px 18px", borderBottom:"1px solid var(--cb-border)", background:"var(--cb-surface)", flexShrink:0, flexWrap:isMobile ? "wrap" : "nowrap" }}>
                 <button onClick={()=>{setActiveRoom(null);activeRef.current=null;setMsgs([]);}}
                   style={{ background:"transparent", border:"1px solid var(--cb-border)", color:"var(--cb-muted)", borderRadius:9, padding:"7px 12px", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
                   ← Back
@@ -1026,10 +1040,10 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
                     {typing
                       ? <span style={{ color:"var(--cb-gold)", fontStyle:"italic", fontWeight:500 }}>✍️ {activeRoom.otherName.split(" ")[0]} is typing...</span>
                       : <span style={{ color:getStatus(activeRoom.otherId).color }}>{getStatus(activeRoom.otherId).text}</span>}
-                    {activeRoom.otherUsername&&<span style={{ color:"var(--cb-muted)", marginLeft:8, fontFamily:"monospace", fontSize:10 }}>@{activeRoom.otherUsername}</span>}
+                    {activeRoom.otherUsername&&<span style={{ color:"var(--cb-muted)", marginLeft:isMobile ? 0 : 8, display:isMobile ? "block" : "inline", marginTop:isMobile ? 2 : 0, fontFamily:"monospace", fontSize:10 }}>@{activeRoom.otherUsername}</span>}
                   </div>
                 </div>
-                <div style={{ display:"flex", gap:6 }}>
+                <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginLeft:isMobile ? 54 : 0 }}>
                   {[
                     { ico:"🔍", tip:"Search messages",    fn:()=>setShowMsgSearch(!showMsgSearch) },
                     { ico:"📅", tip:"Schedule interview",  fn:()=>setShowInterview(true) },
@@ -1038,7 +1052,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
                     { ico:"👤", tip:"View profile",        fn:()=>setViewProfile(activeRoom.otherProfile||{name:activeRoom.otherName,username:activeRoom.otherUsername,role:activeRoom.otherRole,id:activeRoom.otherId}) },
                   ].map(({ico,tip,fn})=>(
                     <button key={ico} onClick={fn} className="hbtn" title={tip}
-                      style={{ background:"transparent", border:"1px solid var(--cb-border)", color:"var(--cb-muted)", borderRadius:10, padding:"8px 12px", fontSize:16, cursor:"pointer", transition:"all 0.2s" }}>
+                      style={{ background:"transparent", border:"1px solid var(--cb-border)", color:"var(--cb-muted)", borderRadius:10, width:isMobile ? 38 : "auto", minWidth:isMobile ? 38 : "auto", padding:isMobile ? "8px 0" : "8px 12px", fontSize:16, cursor:"pointer", transition:"all 0.2s" }}>
                       {ico}
                     </button>
                   ))}
@@ -1046,7 +1060,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
               </div>
 
               {showMsgSearch&&(
-                <div style={{ padding:"8px 16px", background:"rgba(37,99,235,0.04)", borderBottom:"1px solid rgba(37,99,235,0.12)", display:"flex", alignItems:"center", gap:10 }}>
+                <div style={{ padding:isMobile ? "8px 12px" : "8px 16px", background:"rgba(37,99,235,0.04)", borderBottom:"1px solid rgba(37,99,235,0.12)", display:"flex", alignItems:"center", gap:10 }}>
                   <span style={{ fontSize:14 }}>🔍</span>
                   <input style={{ flex:1, background:"transparent", border:"none", outline:"none", color:"var(--cb-text)", fontSize:13, fontFamily:"'DM Sans',sans-serif" }}
                     placeholder="Search in conversation..." value={msgSearch} onChange={e=>setMsgSearch(e.target.value)} autoFocus/>
@@ -1055,7 +1069,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
               )}
 
               {uploadProg>0&&(
-                <div style={{ padding:"8px 16px", background:"rgba(37,99,235,0.04)", borderBottom:"1px solid rgba(37,99,235,0.1)", display:"flex", alignItems:"center", gap:10 }}>
+                <div style={{ padding:isMobile ? "8px 12px" : "8px 16px", background:"rgba(37,99,235,0.04)", borderBottom:"1px solid rgba(37,99,235,0.1)", display:"flex", alignItems:"center", gap:10 }}>
                   <span style={{ fontSize:13, color:"var(--cb-accent)" }}>📤 Uploading...</span>
                   <div style={{ flex:1, height:3, background:"rgba(0,0,0,0.05)", borderRadius:2, overflow:"hidden" }}>
                     <div style={{ width:"60%", height:"100%", background:"linear-gradient(90deg,var(--cb-accent),var(--cb-accent2))", borderRadius:2, animation:"pulse 1s infinite" }}/>
@@ -1063,7 +1077,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
                 </div>
               )}
 
-              <div style={{ flex:1, overflowY:"auto", padding:"14px 20px 8px", display:"flex", flexDirection:"column" }}>
+              <div style={{ flex:1, overflowY:"auto", padding:isMobile ? "12px 10px 8px" : "14px 20px 8px", display:"flex", flexDirection:"column" }}>
                 {msgLoading&&<div style={{ textAlign:"center", padding:20, color:"var(--cb-muted)", fontSize:13 }}>Loading messages...</div>}
                 {!msgLoading&&msgs.length===0&&(
                   <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
@@ -1090,7 +1104,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
               </div>
 
               {replyTo&&(
-                <div style={{ padding:"8px 16px", background:"rgba(37,99,235,0.04)", borderTop:"1px solid rgba(37,99,235,0.1)", display:"flex", alignItems:"center", gap:10 }}>
+                <div style={{ padding:isMobile ? "8px 12px" : "8px 16px", background:"rgba(37,99,235,0.04)", borderTop:"1px solid rgba(37,99,235,0.1)", display:"flex", alignItems:"center", gap:10 }}>
                   <div style={{ flex:1, borderLeft:`3px solid var(--cb-accent)`, paddingLeft:10 }}>
                     <div style={{ fontSize:11, color:"var(--cb-accent)", fontWeight:700 }}>Replying to {replyTo.senderName}</div>
                     <div style={{ fontSize:12, color:"var(--cb-muted)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{replyTo.text}</div>
@@ -1100,14 +1114,14 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
               )}
 
               {editingMsg&&(
-                <div style={{ padding:"8px 16px", background:"rgba(217,119,6,0.04)", borderTop:"1px solid rgba(217,119,6,0.12)", display:"flex", alignItems:"center", gap:10 }}>
+                <div style={{ padding:isMobile ? "8px 12px" : "8px 16px", background:"rgba(217,119,6,0.04)", borderTop:"1px solid rgba(217,119,6,0.12)", display:"flex", alignItems:"center", gap:10 }}>
                   <span style={{ fontSize:12, color:"var(--cb-gold)", fontWeight:700 }}>✏️ Editing message</span>
                   <button onClick={()=>{setEditingMsg(null);setInput("");}} style={{ marginLeft:"auto", background:"none", border:"none", color:"var(--cb-muted)", cursor:"pointer" }}>✕</button>
                 </div>
               )}
 
               {emojiOpen&&(
-                <div style={{ padding:"10px 16px", borderTop:"1px solid var(--cb-border)", display:"flex", flexWrap:"wrap", gap:4, background:"var(--cb-surface)" }}>
+                <div style={{ padding:isMobile ? "10px 12px" : "10px 16px", borderTop:"1px solid var(--cb-border)", display:"flex", flexWrap:"wrap", gap:4, background:"var(--cb-surface)", maxHeight:isMobile ? 118 : "none", overflowY:isMobile ? "auto" : "visible" }}>
                   {EMOJIS.map(e=>(
                     <button key={e} onClick={()=>{setInput(p=>p+e);inputRef.current?.focus();}}
                       style={{ background:"none", border:"none", fontSize:22, cursor:"pointer", padding:"3px", borderRadius:8 }}
@@ -1118,47 +1132,52 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
                 </div>
               )}
 
-              <div style={{ display:"flex", gap:8, padding:"10px 14px 12px", borderTop:"1px solid var(--cb-border)", background:"var(--cb-surface)", alignItems:"flex-end", flexShrink:0 }}>
-                <label className="ibtn" title="Attach file" style={{ background:"transparent", border:"1px solid var(--cb-border)", color:"var(--cb-muted)", borderRadius:12, padding:"11px 14px", fontSize:16, cursor:"pointer", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.2s" }}>
-                  📎<input ref={fileRef} type="file" style={{display:"none"}} onChange={e=>sendFile(e.target.files[0])}/>
-                </label>
+              <div style={{ display:"flex", flexDirection:isMobile ? "column" : "row", gap:8, padding:isMobile ? "10px 10px 12px" : "10px 14px 12px", borderTop:"1px solid var(--cb-border)", background:"var(--cb-surface)", alignItems:isMobile ? "stretch" : "flex-end", flexShrink:0 }}>
+                <div style={{ display:"flex", gap:8, flexShrink:0 }}>
+                  <label className="ibtn" title="Attach file" style={{ background:"transparent", border:"1px solid var(--cb-border)", color:"var(--cb-muted)", borderRadius:12, padding:isMobile ? "10px 12px" : "11px 14px", fontSize:16, cursor:"pointer", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.2s" }}>
+                    📎<input ref={fileRef} type="file" style={{display:"none"}} onChange={e=>sendFile(e.target.files[0])}/>
+                  </label>
 
-                <button onClick={()=>setEmojiOpen(!emojiOpen)} className="ibtn"
-                  style={{ background:emojiOpen?"rgba(217,119,6,0.08)":"transparent", border:`1px solid ${emojiOpen?"rgba(217,119,6,0.3)":"var(--cb-border)"}`, color:emojiOpen?"var(--cb-gold)":"var(--cb-muted)", borderRadius:12, padding:"11px 14px", fontSize:16, cursor:"pointer", flexShrink:0, transition:"all 0.2s" }}>
-                  😊
-                </button>
+                  <button onClick={()=>setEmojiOpen(!emojiOpen)} className="ibtn"
+                    style={{ background:emojiOpen?"rgba(217,119,6,0.08)":"transparent", border:`1px solid ${emojiOpen?"rgba(217,119,6,0.3)":"var(--cb-border)"}`, color:emojiOpen?"var(--cb-gold)":"var(--cb-muted)", borderRadius:12, padding:isMobile ? "10px 12px" : "11px 14px", fontSize:16, cursor:"pointer", flexShrink:0, transition:"all 0.2s" }}>
+                    😊
+                  </button>
 
-                <button onClick={()=>setShowInterview(true)} className="ibtn"
-                  style={{ background:"transparent", border:"1px solid var(--cb-border)", color:"var(--cb-muted)", borderRadius:12, padding:"11px 14px", fontSize:16, cursor:"pointer", flexShrink:0, transition:"all 0.2s" }}
-                  title="Schedule Interview">
-                  📅
-                </button>
-
-                <div style={{ flex:1, background:"var(--cb-card)", border:"1px solid var(--cb-border)", borderRadius:14, display:"flex", alignItems:"flex-end", minHeight:46 }}>
-                  <textarea ref={inputRef}
-                    style={{ flex:1, background:"transparent", border:"none", outline:"none", color:"var(--cb-text)", fontSize:14, fontFamily:"'DM Sans',sans-serif", resize:"none", padding:"12px 14px", lineHeight:1.5, maxHeight:120, overflowY:"auto" }}
-                    placeholder={editingMsg ? "Edit message..." : "Type a message..."}
-                    value={input}
-                    onChange={e=>{handleTyping(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,120)+"px";}}
-                    onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMsg();}}}
-                    rows={1}/>
+                  <button onClick={()=>setShowInterview(true)} className="ibtn"
+                    style={{ background:"transparent", border:"1px solid var(--cb-border)", color:"var(--cb-muted)", borderRadius:12, padding:isMobile ? "10px 12px" : "11px 14px", fontSize:16, cursor:"pointer", flexShrink:0, transition:"all 0.2s" }}
+                    title="Schedule Interview">
+                    📅
+                  </button>
                 </div>
 
-                <button onClick={editingMsg?saveEdit:sendMsg}
-                  disabled={!input.trim()&&!editingMsg||sending}
-                  style={{ width:46, height:46, borderRadius:14, background:input.trim()||editingMsg?"linear-gradient(135deg,var(--cb-accent),var(--cb-accent2))":"transparent", color:"#fff", border:input.trim()||editingMsg?"none":"1px solid var(--cb-border)", fontSize:18, cursor:input.trim()||editingMsg?"pointer":"default", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all 0.2s", boxShadow:input.trim()?"0 4px 12px rgba(37,99,235,0.2)":"none", opacity:!input.trim()&&!editingMsg?0.5:1 }}>
-                  {sending
-                    ? <span style={{ width:18, height:18, border:"2px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.7s linear infinite", display:"inline-block" }}/>
-                    : editingMsg ? "✓" : "➤"}
-                </button>
+                <div style={{ display:"flex", gap:8, alignItems:"flex-end", minWidth:0 }}>
+                  <div style={{ flex:1, background:"var(--cb-card)", border:"1px solid var(--cb-border)", borderRadius:14, display:"flex", alignItems:"flex-end", minHeight:46 }}>
+                    <textarea ref={inputRef}
+                      style={{ flex:1, background:"transparent", border:"none", outline:"none", color:"var(--cb-text)", fontSize:14, fontFamily:"'DM Sans',sans-serif", resize:"none", padding:"12px 14px", lineHeight:1.5, maxHeight:120, overflowY:"auto" }}
+                      placeholder={editingMsg ? "Edit message..." : "Type a message..."}
+                      value={input}
+                      onChange={e=>{handleTyping(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,120)+"px";}}
+                      onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMsg();}}}
+                      rows={1}/>
+                  </div>
+
+                  <button onClick={editingMsg?saveEdit:sendMsg}
+                    disabled={!input.trim()&&!editingMsg||sending}
+                    style={{ width:46, height:46, borderRadius:14, background:input.trim()||editingMsg?"linear-gradient(135deg,var(--cb-accent),var(--cb-accent2))":"transparent", color:"#fff", border:input.trim()||editingMsg?"none":"1px solid var(--cb-border)", fontSize:18, cursor:input.trim()||editingMsg?"pointer":"default", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all 0.2s", boxShadow:input.trim()?"0 4px 12px rgba(37,99,235,0.2)":"none", opacity:!input.trim()&&!editingMsg?0.5:1 }}>
+                    {sending
+                      ? <span style={{ width:18, height:18, border:"2px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.7s linear infinite", display:"inline-block" }}/>
+                      : editingMsg ? "✓" : "➤"}
+                  </button>
+                </div>
               </div>
 
-              <div style={{ textAlign:"center", fontSize:10, color:"var(--cb-muted)", padding:"4px 0 6px", background:"var(--cb-card)", display:"flex", alignItems:"center", justifyContent:"center", gap:14 }}>
+              <div style={{ textAlign:"center", fontSize:10, color:"var(--cb-muted)", padding:"6px 10px 8px", background:"var(--cb-card)", display:"flex", alignItems:"center", justifyContent:"center", gap:14, flexWrap:"wrap" }}>
                 {["🔌 Real-time","🗄️ MongoDB","🔒 Secure","📎 Files","😊 Reactions","📅 Interviews"].map(f=><span key={f}>{f}</span>)}
               </div>
             </>
           )}
         </div>
+        )}
       </div>
     </>
   );

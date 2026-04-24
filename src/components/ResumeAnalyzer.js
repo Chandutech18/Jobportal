@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { API } from "../config";
 
 export default function ResumeAnalyzer({ onViewJobs }) {
@@ -10,7 +10,16 @@ export default function ResumeAnalyzer({ onViewJobs }) {
   const [error,    setError]    = useState("");
   const [drag,     setDrag]     = useState(false);
   const [progress, setProgress] = useState(0);
+  const [viewportW, setViewportW] = useState(() => window.innerWidth);
   const inputRef = useRef();
+  const isMobile = viewportW < 760;
+  const isTablet = viewportW < 1024;
+
+  useEffect(() => {
+    const onResize = () => setViewportW(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const handleFile = (f) => {
     if (!f) return;
@@ -70,7 +79,7 @@ export default function ResumeAnalyzer({ onViewJobs }) {
         <p style={{fontSize:"14px",color:"#64748b"}}>Upload your resume and get instant AI feedback, ATS score, missing skills & best job matches</p>
       </div>
 
-      <div style={s.layout}>
+      <div style={{...s.layout,gridTemplateColumns:isTablet?"1fr":"1fr 1fr",gap:isMobile?"16px":"20px"}}>
         {/* ── LEFT — Input ── */}
         <div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
           {/* Tabs */}
@@ -89,7 +98,7 @@ export default function ResumeAnalyzer({ onViewJobs }) {
               onDragLeave={()=>setDrag(false)}
               onDrop={e=>{e.preventDefault();setDrag(false);handleFile(e.dataTransfer.files[0])}}
               onClick={()=>inputRef.current.click()}
-              style={{...s.dropZone,...(drag?s.dropOn:{})}}>
+              style={{...s.dropZone,padding:isMobile?"30px 16px":"40px 20px",minHeight:isMobile?"180px":"200px",...(drag?s.dropOn:{})}}>
               <input ref={inputRef} type="file" accept=".pdf,.txt,.docx" style={{display:"none"}} onChange={e=>handleFile(e.target.files[0])}/>
               {file ? (
                 <>
@@ -169,7 +178,7 @@ export default function ResumeAnalyzer({ onViewJobs }) {
           {result && !loading && (
             <div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
               {/* Score cards */}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
+              <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"12px"}}>
                 {[["Overall Score",result.score,"🏆"],["ATS Score",result.ats_score,"🤖"]].map(([label,val,ic])=>(
                   <div key={label} style={s.scoreCard}>
                     <div style={{fontSize:"24px",marginBottom:"4px"}}>{ic}</div>
@@ -191,7 +200,7 @@ export default function ResumeAnalyzer({ onViewJobs }) {
               </div>
 
               {/* Strengths & Improvements */}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
+              <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"12px"}}>
                 <div style={s.card}>
                   <div style={{...s.cardTitle,color:"#4ade80"}}>✅ Strengths</div>
                   {(result.strengths||[]).map((item,i)=>(
@@ -238,10 +247,10 @@ export default function ResumeAnalyzer({ onViewJobs }) {
               <div style={s.card}>
                 <div style={s.cardTitle}>💼 Best Fit Jobs</div>
                 {(result.best_fit_jobs||[]).map((job,i)=>(
-                  <div key={i} style={{display:"flex",gap:"10px",alignItems:"center",padding:"8px 0",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
+                  <div key={i} style={{display:"flex",gap:"10px",alignItems:isMobile?"flex-start":"center",flexDirection:isMobile?"column":"row",padding:"8px 0",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
                     <span style={{fontSize:"18px"}}>{"🥇🥈🥉"[i]||"🔹"}</span>
-                    <span style={{fontSize:"13px",color:"#e2e8f0",fontWeight:600,flex:1}}>{job}</span>
-                    <button onClick={()=>onViewJobs?.(job)} style={{background:"rgba(30,64,175,0.15)",border:"1px solid rgba(30,64,175,0.3)",color:"#93c5fd",borderRadius:"6px",padding:"4px 10px",fontSize:"11px",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>Find Jobs →</button>
+                    <span style={{fontSize:"13px",color:"#e2e8f0",fontWeight:600,flex:1,alignSelf:isMobile?"stretch":"auto"}}>{job}</span>
+                    <button onClick={()=>onViewJobs?.(job)} style={{background:"rgba(30,64,175,0.15)",border:"1px solid rgba(30,64,175,0.3)",color:"#93c5fd",borderRadius:"6px",padding:"4px 10px",fontSize:"11px",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",width:isMobile?"100%":"auto"}}>Find Jobs →</button>
                   </div>
                 ))}
               </div>
