@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { API } from "../config";
 
 const user = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -463,6 +464,16 @@ export default function Jobs({ onMessage, initialFilters }) {
   const [sort,    setSort]    = useState("latest");
   const [expanded,setExpanded]= useState(null);
   const [showRes, setShowRes] = useState(null); // show resources
+  const [viewportW, setViewportW] = useState(() => window.innerWidth);
+  const [msgLoadingId, setMsgLoadingId] = useState(null);
+  const isMobile = viewportW < 760;
+  const isTablet = viewportW < 1100;
+
+  useEffect(() => {
+    const onResize = () => setViewportW(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   useEffect(() => {
     if (!initialFilters) return;
@@ -504,9 +515,23 @@ export default function Jobs({ onMessage, initialFilters }) {
     window.open(job.applyLink, "_blank");
   };
 
-  const msgRecruiter = (job) => {
-    if (onMessage && job.recruiterId) {
-      onMessage({ id:job.recruiterId, name:job.recruiterName, username:job.recruiterUsername, role:"recruiter", org:job.org });
+  const msgRecruiter = async (job) => {
+    if (!onMessage || !job.recruiterUsername) return;
+    setMsgLoadingId(job.id);
+    try {
+      const res = await fetch(`${API}/api/auth/profile/${job.recruiterUsername}`);
+      const data = await res.json();
+      const recruiter = data?.user;
+      if (!res.ok || !recruiter?.id) throw new Error("Recruiter not found");
+      onMessage({
+        id: recruiter.id,
+        name: recruiter.name || job.recruiterName,
+        username: recruiter.username || job.recruiterUsername,
+        role: recruiter.role || "recruiter",
+        org: recruiter.organisation || job.org,
+      });
+    } finally {
+      setMsgLoadingId(null);
     }
   };
 
@@ -554,11 +579,11 @@ export default function Jobs({ onMessage, initialFilters }) {
             {t}
           </button>
         ))}
-        <div style={{flex:1}}/>
-        <select value={cat} onChange={e=>setCat(e.target.value)} style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",color:"#94a3b8",borderRadius:"8px",padding:"7px 12px",fontSize:"12px",fontFamily:"'DM Sans',sans-serif",outline:"none"}}>
+        <div style={{flex:isMobile ? "0 0 100%" : 1}}/>
+        <select value={cat} onChange={e=>setCat(e.target.value)} style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",color:"#94a3b8",borderRadius:"8px",padding:"7px 12px",fontSize:"12px",fontFamily:"'DM Sans',sans-serif",outline:"none",width:isMobile?"100%":"auto"}}>
           {CATEGORIES.map(c=><option key={c} style={{background:"#0f1f38"}}>{c}</option>)}
         </select>
-        <select value={sort} onChange={e=>setSort(e.target.value)} style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",color:"#94a3b8",borderRadius:"8px",padding:"7px 12px",fontSize:"12px",fontFamily:"'DM Sans',sans-serif",outline:"none"}}>
+        <select value={sort} onChange={e=>setSort(e.target.value)} style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",color:"#94a3b8",borderRadius:"8px",padding:"7px 12px",fontSize:"12px",fontFamily:"'DM Sans',sans-serif",outline:"none",width:isMobile?"100%":"auto"}}>
           <option value="latest">Latest First</option>
           <option value="vacancies">Most Vacancies</option>
         </select>
@@ -567,7 +592,7 @@ export default function Jobs({ onMessage, initialFilters }) {
       <div style={{fontSize:"13px",color:"#64748b",marginBottom:"14px"}}>{list.length} of {JOBS.length} jobs</div>
 
       {/* Cards */}
-      <div style={S.grid}>
+      <div style={{...S.grid,gridTemplateColumns:isMobile?"1fr":isTablet?"repeat(auto-fill,minmax(300px,1fr))":S.grid.gridTemplateColumns}}>
         {list.map(job => {
           const isSaved   = saved.includes(job.id);
           const isApplied = applied.includes(job.id);
@@ -613,10 +638,10 @@ export default function Jobs({ onMessage, initialFilters }) {
                   <div style={{fontSize:"12px",fontWeight:600,color:"#e2e8f0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{job.recruiterName}</div>
                   {job.recruiterUsername && <div style={{fontSize:"10px",color:"#475569",fontFamily:"monospace"}}>@{job.recruiterUsername}</div>}
                 </div>
-                {job.recruiterId && user.role==="seeker" && (
+                {job.recruiterUsername && user.role==="seeker" && (
                   <button onClick={()=>msgRecruiter(job)}
                     style={{background:"rgba(30,64,175,0.15)",border:"1px solid rgba(30,64,175,0.3)",color:"#93c5fd",borderRadius:"7px",padding:"5px 10px",fontSize:"11px",fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap"}}>
-                    💬 Message
+                    {msgLoadingId===job.id ? "..." : "💬 Message"}
                   </button>
                 )}
               </div>
@@ -643,7 +668,7 @@ export default function Jobs({ onMessage, initialFilters }) {
               {/* Resources section */}
               {isRes && (
                 <div style={{marginTop:"14px",paddingTop:"14px",borderTop:"1px solid rgba(255,255,255,0.06)"}}>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
+                  <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"12px"}}>
                     <div>
                       <div style={{fontSize:"12px",fontWeight:700,color:"#d4af37",marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.5px"}}>📖 Recommended Books</div>
                       {job.books.map((b,i)=>(
@@ -678,12 +703,12 @@ export default function Jobs({ onMessage, initialFilters }) {
                   <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginBottom:"12px"}}>
                     {job.skills.map(sk=><span key={sk} style={{fontSize:"12px",color:"#93c5fd",background:"rgba(30,64,175,0.12)",padding:"4px 10px",borderRadius:"50px",border:"1px solid rgba(30,64,175,0.2)"}}>{sk}</span>)}
                   </div>
-                  <div style={{display:"flex",gap:"8px"}}>
+                  <div style={{display:"flex",gap:"8px",flexDirection:isMobile?"column":"row"}}>
                     <button onClick={()=>applyJob(job)} style={{flex:1,...S.applyBtn}}>🚀 Apply on Official Portal</button>
-                    {job.recruiterId && user.role==="seeker" && (
+                    {job.recruiterUsername && user.role==="seeker" && (
                       <button onClick={()=>msgRecruiter(job)}
                         style={{flex:1,background:"rgba(30,64,175,0.15)",border:"1px solid rgba(30,64,175,0.3)",color:"#93c5fd",borderRadius:"9px",padding:"10px",fontSize:"12px",fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
-                        💬 Message Recruiter
+                        {msgLoadingId===job.id ? "Opening chat..." : "💬 Message Recruiter"}
                       </button>
                     )}
                   </div>
