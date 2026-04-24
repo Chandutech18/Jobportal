@@ -84,8 +84,8 @@ export default function Home() {
       <div style={s.glow2}/>
 
       {/* NAV */}
-      <nav style={{...s.nav,...(scrolled?s.navScroll:{}),padding:isMobile?"14px 16px":isTablet?"16px 24px":s.nav.padding}}>
-        <div style={{...s.navInner,flexWrap:isTablet?"wrap":"nowrap",gap:isTablet?"12px":"0"}}>
+      <nav style={{...s.nav,...(scrolled?s.navScroll:{}),padding:isMobile?"12px 12px 14px":isTablet?"16px 24px":s.nav.padding}}>
+        <div style={{...s.navInner,flexWrap:isTablet?"wrap":"nowrap",gap:isTablet?"12px":"0",alignItems:isMobile?"stretch":"center"}}>
           <div style={s.logo}>
             <span style={s.logoMark}>⚡</span>
             <span style={s.logoName}>CareerBharat</span>
@@ -96,18 +96,18 @@ export default function Home() {
               <a key={l} className="nav-link" href="#" style={s.navLink}>{l}</a>
             ))}
           </div>}
-          <div style={{display:"flex",gap:"10px",width:isTablet?"100%":"auto",justifyContent:isTablet?"space-between":"flex-start"}}>
+          <div style={{display:"flex",gap:"10px",width:isTablet?"100%":"auto",justifyContent:isMobile?"stretch":isTablet?"space-between":"flex-start",flexWrap:isMobile?"wrap":"nowrap"}}>
             {isTablet && (
-              <button onClick={()=>setMobileNavOpen(v=>!v)} style={s.btnOutline}>
+              <button onClick={()=>setMobileNavOpen(v=>!v)} style={{...s.btnOutline,flex:isMobile?"1 1 100%":"0 0 auto"}}>
                 {mobileNavOpen ? "Close" : "Menu"}
               </button>
             )}
-            <button onClick={()=>window.location.href="/login"} style={s.btnOutline}>Login</button>
-            <button onClick={()=>window.location.href="/login"} style={s.btnPrimary}>Get Started Free</button>
+            <button onClick={()=>window.location.href="/login"} style={{...s.btnOutline,flex:isMobile?"1 1 calc(50% - 5px)":"0 0 auto",minWidth:isMobile?0:"auto"}}>Login</button>
+            <button onClick={()=>window.location.href="/login"} style={{...s.btnPrimary,flex:isMobile?"1 1 calc(50% - 5px)":"0 0 auto",minWidth:isMobile?0:"auto"}}>{isMobile ? "Sign Up" : "Sign Up Free"}</button>
           </div>
         </div>
         {isTablet && mobileNavOpen && (
-          <div style={{marginTop:"12px",display:"flex",flexWrap:"wrap",gap:"10px",background:"rgba(6,14,31,0.96)",border:"1px solid rgba(212,175,55,0.12)",borderRadius:"16px",padding:"14px"}}>
+          <div style={{marginTop:"12px",display:"flex",flexWrap:"wrap",gap:"10px",background:"rgba(6,14,31,0.96)",border:"1px solid rgba(212,175,55,0.12)",borderRadius:"16px",padding:isMobile?"12px":"14px"}}>
             {["Home","Jobs","Resources","Exam Prep","Career Advice","About"].map((l)=>(
               <a key={l} href="#" onClick={()=>setMobileNavOpen(false)} style={{...s.navLink,padding:"8px 10px",borderRadius:"999px",background:"rgba(255,255,255,0.04)"}}>{l}</a>
             ))}

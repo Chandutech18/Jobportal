@@ -4,6 +4,14 @@ import { API, SOCKET_URL } from "../config";
 let   socket = null;
 const mkRoom = (a, b) => [String(a), String(b)].sort().join("_");
 const CALL_IDLE = { phase:"idle", mode:"video", peerId:null, peerName:"", muted:false, cameraOff:false };
+const normalizeId = (...values) => {
+  for (const value of values) {
+    if (value === undefined || value === null) continue;
+    const normalized = String(value).trim();
+    if (normalized) return normalized;
+  }
+  return "";
+};
 
 const sameReplyTarget = (a, b) => {
   const left  = typeof a === "object" ? a?._id || a?.text || "" : a || "";
@@ -364,6 +372,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
   const callStateRef    = useRef(CALL_IDLE);
   const incomingCallRef = useRef(null);
   const token       = localStorage.getItem("token");
+  const selfId      = normalizeId(user?.id, user?._id, user?.email);
   const isMobile    = viewportW < 820;
   const isTablet    = viewportW < 1100;
   const mediaPreviewWidth = Math.max(160, Math.min(240, viewportW - (isMobile ? 132 : 360)));
@@ -469,7 +478,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
 
   const startCall = useCallback(async (mode) => {
     if (!activeRoom?.otherId) return;
-    if (!online.includes(String(activeRoom.otherId))) {
+    if (!isOnline(activeRoom.otherId)) {
       showToast(`${activeRoom.otherName || "User"} is offline right now.`);
       return;
     }
@@ -494,7 +503,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
       socket?.emit("call_offer", {
         to: activeRoom.otherId,
         offer,
-        from: user.id || user.email,
+        from: selfId,
         fromName: user.name,
         callType: mode,
       });
@@ -503,7 +512,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
       setCallState(CALL_IDLE);
       showToast(err.message || "Could not start the call.");
     }
-  }, [activeRoom, createPeer, getUserMediaStream, online, resetMedia, user.id, user.email, user.name]);
+  }, [activeRoom, createPeer, getUserMediaStream, online, resetMedia, selfId, user.name]);
 
   const acceptCall = useCallback(async (mode = incomingCall?.callType || "video") => {
     if (!incomingCall) return;
@@ -561,7 +570,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
     window._cbSocket = socket;
 
     socket.on("connect",()=>{
-      socket.emit("user_online", user.id||user.email);
+      socket.emit("user_online", selfId);
     });
     socket.on("online_users",   (u)=>setOnline(u));
     socket.on("user_status",    (d)=>setUserStatuses(p=>({...p,[d.userId]:{status:d.status,lastSeen:d.lastSeen}})));
@@ -585,7 +594,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
           ...p.filter(c=>c.roomId!==msg.roomId)
         ];
         const ids     = msg.roomId.split("_");
-        const otherId = ids.find(id=>id!==String(user.id||user.email))||ids[0];
+        const otherId = ids.find(id=>id!==selfId)||ids[0];
         return [{
           roomId:msg.roomId,
           otherId,
@@ -638,7 +647,10 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
   },[]);
 
   useEffect(()=>{
-    if (preSelectedTarget?.id){ openConv(preSelectedTarget); if(onClearTarget) onClearTarget(); }
+    if (normalizeId(preSelectedTarget?.id, preSelectedTarget?._id, preSelectedTarget?.email, preSelectedTarget?.userId)) {
+      openConv(preSelectedTarget);
+      if(onClearTarget) onClearTarget();
+    }
   },[preSelectedTarget]);
 
   useEffect(()=>{ endRef.current?.scrollIntoView({behavior:"smooth"}); },[msgs]);
@@ -655,8 +667,13 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
   };
 
   const openConv = async (target) => {
-    const room = mkRoom(user.id||user.email, target.id);
-    const rd   = { roomId:room, otherId:target.id, otherName:target.name||"User", otherUsername:target.username||(target.name||"").toLowerCase().replace(/[^a-z0-9]/g,""), otherRole:target.role||"other", otherOrg:target.org||target.organisation||"", otherProfile:target };
+    const targetId = normalizeId(target?.id, target?._id, target?.email, target?.userId);
+    if (!targetId) {
+      showToast("Could not open this conversation.");
+      return;
+    }
+    const room = mkRoom(selfId, targetId);
+    const rd   = { roomId:room, otherId:targetId, otherName:target.name||"User", otherUsername:target.username||(target.name||"").toLowerCase().replace(/[^a-z0-9]/g,""), otherRole:target.role||"other", otherOrg:target.org||target.organisation||"", otherProfile:{...target,id:targetId} };
     setActiveRoom(rd); activeRef.current=rd;
     setMsgs([]); setMsgLoading(true); setReplyTo(null); setEditingMsg(null);
     socket?.emit("join_room", room);
@@ -678,7 +695,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
     const text=input.trim(); const tempId=`tmp_${Date.now()}`;
     setInput(""); setSending(true); setReplyTo(null); setEmojiOpen(false);
 
-    const optimistic = { _id:tempId, _tempId:tempId, roomId:activeRoom.roomId, senderId:user.id||user.email, senderName:user.name, text, type:"text", status:"sent", createdAt:new Date().toISOString(), replyTo:replyTo||null };
+    const optimistic = { _id:tempId, _tempId:tempId, roomId:activeRoom.roomId, senderId:selfId, senderName:user.name, text, type:"text", status:"sent", createdAt:new Date().toISOString(), replyTo:replyTo||null };
     setMsgs(p=>[...p,optimistic]);
     socket?.emit("stop_typing",{roomId:activeRoom.roomId});
 
@@ -708,7 +725,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
   const sendInterview = async (form) => {
     const text = `📅 Interview Invitation\n📆 ${form.date} at ${form.time}\n🖥️ ${form.mode==="online"?"Online":"In-Person"}${form.link?`\n🔗 ${form.link}`:""}${form.note?`\n📝 ${form.note}`:""}`;
     const tempId=`tmp_${Date.now()}`;
-    const msg = { _id:tempId,_tempId:tempId,roomId:activeRoom.roomId,senderId:user.id,senderName:user.name,text,type:"interview",status:"sent",interview:{...form,status:"pending"},createdAt:new Date().toISOString() };
+    const msg = { _id:tempId,_tempId:tempId,roomId:activeRoom.roomId,senderId:selfId,senderName:user.name,text,type:"interview",status:"sent",interview:{...form,status:"pending"},createdAt:new Date().toISOString() };
     setMsgs(p=>[...p,msg]);
     try {
       const res  = await fetch(`${API}/api/messages`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({roomId:activeRoom.roomId,text,type:"interview",interview:form,recipientId:activeRoom.otherId})});
@@ -736,11 +753,11 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
     setReactTarget(null);
     setMsgs(p=>p.map(m=>{
       if(String(m._id)!==msgId) return m;
-      const uid = String(user.id);
+      const uid = selfId;
       const reacts=[...(m.reactions||[])];
       const idx=reacts.findIndex(r=>String(r.userId)===uid);
       if(idx>=0){ if(reacts[idx].emoji===emoji) reacts.splice(idx,1); else reacts[idx]={...reacts[idx],emoji}; }
-      else reacts.push({userId:user.id,userName:user.name,emoji});
+      else reacts.push({userId:selfId,userName:user.name,emoji});
       return {...m,reactions:reacts};
     }));
     await fetch(`${API}/api/messages/${msgId}/react`,{method:"PUT",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({emoji})}).catch(()=>{});
@@ -754,7 +771,10 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
     typingTimer.current=setTimeout(()=>socket?.emit("stop_typing",{roomId:activeRoom.roomId}),1500);
   };
 
-  const isOnline = (id) => online.includes(String(id));
+  const isOnline = (id) => {
+    const targetId = normalizeId(id);
+    return online.some((onlineId) => normalizeId(onlineId) === targetId);
+  };
   const getStatus= (id) => {
     if(isOnline(id)) return {text:"Online",color:"var(--cb-success)"};
     const ls=userStatuses[String(id)]?.lastSeen;
@@ -768,7 +788,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
   const showChatPane = !isMobile || Boolean(activeRoom);
 
   const renderBubble = (msg, i) => {
-    const isMine  = String(msg.senderId)===String(user.id)||String(msg.senderId)===String(user.email)||msg.senderName===user.name;
+    const isMine  = normalizeId(msg.senderId)===selfId || msg.senderName===user.name;
     const isDel   = msg.deletedForAll;
     const msgId   = String(msg._id||msg._tempId||i);
 
