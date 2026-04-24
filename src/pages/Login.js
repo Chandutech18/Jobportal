@@ -128,7 +128,7 @@ export default function Login() {
   const friendlyFetchError = (err) => {
     const msg = String(err?.message || "");
     if (/failed to fetch|networkerror|load failed/i.test(msg)) {
-      return "Cannot reach the server. On mobile, open the app using your computer IP and make sure the backend is running on port 5000.";
+      return `Cannot reach the server at ${API}. On mobile, open the app with your computer IP, like http://192.168.x.x:3000, and make sure the backend is reachable on port 5000.`;
     }
     return msg || "Something went wrong.";
   };
@@ -335,7 +335,7 @@ export default function Login() {
                   <div style={{lineHeight:1.7}}>
                     1. Go to <a href="https://console.cloud.google.com" target="_blank" rel="noreferrer" style={{color:"#60a5fa"}}>console.cloud.google.com</a><br/>
                     2. APIs & Services → Credentials → OAuth 2.0 Client ID<br/>
-                    3. Add <code style={{background:"rgba(255,255,255,0.1)",padding:"1px 5px",borderRadius:"3px"}}>http://localhost:3000</code> to authorized origins<br/>
+                    3. Add <code style={{background:"rgba(255,255,255,0.1)",padding:"1px 5px",borderRadius:"3px"}}>http://localhost:3000</code> and your computer IP origin, like <code style={{background:"rgba(255,255,255,0.1)",padding:"1px 5px",borderRadius:"3px"}}>http://192.168.x.x:3000</code>, to authorized origins<br/>
                     4. Copy Client ID → paste in <code style={{background:"rgba(255,255,255,0.1)",padding:"1px 5px",borderRadius:"3px"}}>mini/.env</code> as:<br/>
                     <code style={{background:"rgba(255,255,255,0.1)",padding:"2px 6px",borderRadius:"3px",display:"inline-block",marginTop:"4px"}}>REACT_APP_GOOGLE_CLIENT_ID=your_id</code>
                   </div>
