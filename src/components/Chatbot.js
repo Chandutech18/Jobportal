@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { API } from "../config";
+import { API, getServerReachabilityHelp } from "../config";
 
 const QUICK = [
   "Best govt jobs after graduation?",
@@ -105,7 +105,7 @@ export default function Chatbot() {
 
       setError(
         isNetworkError
-          ? "Error: Backend is unreachable. Start it with: cd server -> node server.js"
+          ? `Error: ${getServerReachabilityHelp(API)}`
           : `Error: ${message}`
       );
 
@@ -114,7 +114,7 @@ export default function Chatbot() {
         {
           from: "ai",
           text: isNetworkError
-            ? "Cannot reach the backend.\n\nPlease make sure:\n- Backend is running: cd server -> node server.js\n- It started successfully on port 5000"
+            ? getServerReachabilityHelp(API)
             : `AI request failed.\n\n${message}`,
           time: now(),
         },

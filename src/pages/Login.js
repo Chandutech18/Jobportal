@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { API } from "../config";
+import { API, getServerReachabilityHelp } from "../config";
 
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || "";
 const GOOGLE_CONFIGURED = GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.includes("your_") && GOOGLE_CLIENT_ID.length > 20;
@@ -128,7 +128,7 @@ export default function Login() {
   const friendlyFetchError = (err) => {
     const msg = String(err?.message || "");
     if (/failed to fetch|networkerror|load failed/i.test(msg)) {
-      return `Cannot reach the server at ${API}. On mobile, open the app with your computer IP, like "http://10.79.174.190:5000", and make sure the backend is reachable on port 5000.`;
+      return getServerReachabilityHelp(API);
     }
     return msg || "Something went wrong.";
   };
