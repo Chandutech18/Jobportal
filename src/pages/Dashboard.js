@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { io }         from "socket.io-client";
 import Sidebar        from "../components/Sidebar";
 import Jobs, { JOBS } from "../components/job";
 import Chatbot        from "../components/Chatbot";
 import ResumeAnalyzer from "../components/ResumeAnalyzer";
 import TopProfiles    from "../components/TopProfiles";
 import Messages       from "../components/Messages";
-import { API }        from "../config";
+import { API, SOCKET_URL } from "../config";
 
 const actKey  = () => { const u=JSON.parse(localStorage.getItem("user")||"{}"); return `cb_activity_${u.id||u.email||"g"}`; };
 const getAct  = ()  => { try { return JSON.parse(localStorage.getItem(actKey())||"[]"); } catch { return []; } };
@@ -180,6 +181,30 @@ export default function Dashboard({ recruiterMode }) {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+    const identity = currentUser.id || currentUser._id || currentUser.email;
+    if (!token || !identity) return;
+
+    const presenceSocket = io(SOCKET_URL, {
+      auth: { token },
+      transports: ["websocket", "polling"],
+      reconnection: true,
+    });
+
+    presenceSocket.on("connect", () => {
+      presenceSocket.emit("user_online", identity);
+    });
+
+    window._cbPresenceSocket = presenceSocket;
+
+    return () => {
+      presenceSocket.disconnect();
+      if (window._cbPresenceSocket === presenceSocket) window._cbPresenceSocket = null;
+    };
+  }, [user.id, user.email]);
 
   useEffect(() => {
     if (!isMobile) setMobileMenuOpen(false);
