@@ -18,7 +18,7 @@ const resolveLocalApiBase = () => {
 
   return `${safeProtocol}//${normalizedHost}:5000`;
 };
-
-
-export const API = trimSlash(process.env.REACT_APP_API_URL || "http://172.20.103.190:5000");
-export const SOCKET_URL = trimSlash(process.env.REACT_APP_SOCKET_URL || API);
+export const API = trimSlash(process.env.REACT_APP_API_URL || resolveLocalApiBase());
+export const SOCKET_URL = trimSlash(
+  process.env.REACT_APP_SOCKET_URL || process.env.REACT_APP_API_URL || resolveLocalApiBase()
+);

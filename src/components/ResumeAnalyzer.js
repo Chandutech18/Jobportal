@@ -45,8 +45,11 @@ export default function ResumeAnalyzer({ onViewJobs }) {
         body: JSON.stringify({ resumeText: content }),
       });
 
-      if (!res.ok) throw new Error(`Server error ${res.status}`);
       const data = await res.json();
+      if (!res.ok) {
+        const detail = data.error || data.hint || `Server error ${res.status}`;
+        throw new Error(detail);
+      }
 
       clearInterval(prog); setProgress(100);
       setTimeout(()=>setProgress(0), 500);
