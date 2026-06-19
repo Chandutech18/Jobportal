@@ -1020,7 +1020,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
         </div>
       )}
 
-      <div style={{ height:isMobile ? "calc(100dvh - 124px)" : "calc(100vh - 110px)", minHeight:isMobile ? 520 : "auto", display:"flex", background:isMobile ? "linear-gradient(180deg,rgba(7,16,34,0.98),rgba(8,18,36,1))" : "var(--cb-bg)", border:"1px solid var(--cb-border)", borderRadius:isMobile ? 18 : 20, overflow:"hidden", boxShadow:"0 8px 32px rgba(0,0,0,0.04)", fontFamily:"'DM Sans',sans-serif" }}>
+      <div style={{ height:isMobile ? "calc(100dvh - 102px)" : "calc(100vh - 110px)", minHeight:isMobile ? 0 : "auto", display:"flex", background:isMobile ? "linear-gradient(180deg,rgba(7,16,34,0.98),rgba(8,18,36,1))" : "var(--cb-bg)", border:"1px solid var(--cb-border)", borderRadius:isMobile ? 14 : 20, overflow:"hidden", boxShadow:"0 8px 32px rgba(0,0,0,0.04)", fontFamily:"'DM Sans',sans-serif" }}>
 
         {/* LEFT SIDEBAR */}
         {showConversationPane && (
@@ -1116,15 +1116,15 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
             </div>
           ) : (
             <>
-              <div style={{ display:"flex", alignItems:isMobile ? "center" : "center", gap:isMobile ? 10 : 12, padding:isMobile ? "12px 12px 10px" : "13px 18px", borderBottom:"1px solid var(--cb-border)", background:isMobile ? "rgba(15,23,42,0.92)" : "var(--cb-surface)", backdropFilter:isMobile ? "blur(12px)" : "none", flexShrink:0, flexWrap:"nowrap" }}>
+              <div style={{ display:"flex", alignItems:isMobile ? "center" : "center", gap:isMobile ? 8 : 12, padding:isMobile ? "10px 10px 9px" : "13px 18px", borderBottom:"1px solid var(--cb-border)", background:isMobile ? "rgba(15,23,42,0.92)" : "var(--cb-surface)", backdropFilter:isMobile ? "blur(12px)" : "none", flexShrink:0, flexWrap:"nowrap", minWidth:0 }}>
                 <button onClick={()=>{setActiveRoom(null);activeRef.current=null;setMsgs([]);}}
-                  style={{ background:"transparent", border:"1px solid var(--cb-border)", color:"var(--cb-muted)", borderRadius:isMobile ? 12 : 9, padding:isMobile ? "9px 10px" : "7px 12px", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", flexShrink:0 }}>
+                  style={{ background:"transparent", border:"1px solid var(--cb-border)", color:"var(--cb-muted)", borderRadius:isMobile ? 11 : 9, padding:isMobile ? "8px 9px" : "7px 12px", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", flexShrink:0 }}>
                   {isMobile ? "←" : "← Back"}
                 </button>
-                <Avatar name={activeRoom.otherName} size={42} online={isOnline(activeRoom.otherId)} onClick={()=>setViewProfile(activeRoom.otherProfile||{name:activeRoom.otherName,username:activeRoom.otherUsername,role:activeRoom.otherRole,id:activeRoom.otherId})}/>
+                <Avatar name={activeRoom.otherName} size={isMobile ? 36 : 42} online={isOnline(activeRoom.otherId)} onClick={()=>setViewProfile(activeRoom.otherProfile||{name:activeRoom.otherName,username:activeRoom.otherUsername,role:activeRoom.otherRole,id:activeRoom.otherId})}/>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:isMobile ? 15 : 16, fontWeight:700, color:"var(--cb-text)", display:"flex", alignItems:"center", gap:6, flexWrap:"wrap", lineHeight:1.2 }}>
-                    {activeRoom.otherName}
+                  <div style={{ fontSize:isMobile ? 14 : 16, fontWeight:700, color:"var(--cb-text)", display:"flex", alignItems:"center", gap:6, flexWrap:"nowrap", lineHeight:1.2, minWidth:0 }}>
+                    <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{activeRoom.otherName}</span>
                     {!isMobile && activeRoom.otherOrg&&<span style={{ fontSize:12, color:"var(--cb-muted)", fontWeight:400 }}>· {activeRoom.otherOrg}</span>}
                   </div>
                   <div style={{ fontSize:12, marginTop:isMobile ? 2 : 0 }}>
@@ -1134,7 +1134,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
                     {activeRoom.otherUsername&&<span style={{ color:"var(--cb-muted)", marginLeft:isMobile ? 0 : 8, display:isMobile ? "block" : "inline", marginTop:isMobile ? 2 : 0, fontFamily:"monospace", fontSize:10 }}>@{activeRoom.otherUsername}</span>}
                   </div>
                 </div>
-                <div style={{ display:"flex", gap:6, flexWrap:"nowrap", marginLeft:0, overflowX:isMobile ? "auto" : "visible", paddingBottom:isMobile ? 2 : 0, flexShrink:0 }}>
+                <div style={{ display:"flex", gap:5, flexWrap:"nowrap", marginLeft:0, overflowX:isMobile ? "auto" : "visible", paddingBottom:isMobile ? 2 : 0, flexShrink:0, maxWidth:isMobile ? 132 : "none" }}>
                   {[
                     { ico:"🔍", tip:"Search messages",    fn:()=>setShowMsgSearch(!showMsgSearch) },
                     ...(!isMobile ? [{ ico:"📅", tip:"Schedule interview",  fn:()=>setShowInterview(true) }] : []),
@@ -1143,7 +1143,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
                     ...(!isMobile ? [{ ico:"👤", tip:"View profile", fn:()=>setViewProfile(activeRoom.otherProfile||{name:activeRoom.otherName,username:activeRoom.otherUsername,role:activeRoom.otherRole,id:activeRoom.otherId}) }] : []),
                   ].map(({ico,tip,fn})=>(
                     <button key={ico} onClick={fn} className="hbtn" title={tip}
-                      style={{ background:"transparent", border:"1px solid var(--cb-border)", color:"var(--cb-muted)", borderRadius:isMobile ? 12 : 10, width:isMobile ? 38 : "auto", minWidth:isMobile ? 38 : "auto", padding:isMobile ? "8px 0" : "8px 12px", fontSize:16, cursor:"pointer", transition:"all 0.2s", flexShrink:0 }}>
+                      style={{ background:"transparent", border:"1px solid var(--cb-border)", color:"var(--cb-muted)", borderRadius:isMobile ? 11 : 10, width:isMobile ? 34 : "auto", minWidth:isMobile ? 34 : "auto", height:isMobile ? 34 : "auto", padding:isMobile ? "0" : "8px 12px", fontSize:isMobile ? 14 : 16, cursor:"pointer", transition:"all 0.2s", flexShrink:0 }}>
                       {ico}
                     </button>
                   ))}
@@ -1223,14 +1223,14 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
                 </div>
               )}
 
-              <div style={{ display:"flex", flexDirection:"row", gap:8, padding:isMobile ? "10px 10px 12px" : "10px 14px 12px", borderTop:"1px solid var(--cb-border)", background:isMobile ? "rgba(15,23,42,0.94)" : "var(--cb-surface)", alignItems:"flex-end", flexShrink:0 }}>
-                <div style={{ display:"flex", gap:8, flexShrink:0, alignItems:"center" }}>
-                  <label className="ibtn" title="Attach file" style={{ background:"transparent", border:"1px solid var(--cb-border)", color:"var(--cb-muted)", borderRadius:12, padding:isMobile ? "10px 12px" : "11px 14px", fontSize:16, cursor:"pointer", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.2s" }}>
+              <div style={{ display:"flex", flexDirection:"row", gap:isMobile ? 6 : 8, padding:isMobile ? "9px 8px 10px" : "10px 14px 12px", borderTop:"1px solid var(--cb-border)", background:isMobile ? "rgba(15,23,42,0.94)" : "var(--cb-surface)", alignItems:"flex-end", flexShrink:0, minWidth:0 }}>
+                <div style={{ display:"flex", gap:isMobile ? 5 : 8, flexShrink:0, alignItems:"center" }}>
+                  <label className="ibtn" title="Attach file" style={{ background:"transparent", border:"1px solid var(--cb-border)", color:"var(--cb-muted)", borderRadius:isMobile ? 11 : 12, width:isMobile ? 38 : "auto", height:isMobile ? 42 : "auto", padding:isMobile ? 0 : "11px 14px", fontSize:isMobile ? 14 : 16, cursor:"pointer", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.2s" }}>
                     📎<input ref={fileRef} type="file" style={{display:"none"}} onChange={e=>sendFile(e.target.files[0])}/>
                   </label>
 
                   <button onClick={()=>setEmojiOpen(!emojiOpen)} className="ibtn"
-                    style={{ background:emojiOpen?"rgba(217,119,6,0.08)":"transparent", border:`1px solid ${emojiOpen?"rgba(217,119,6,0.3)":"var(--cb-border)"}`, color:emojiOpen?"var(--cb-gold)":"var(--cb-muted)", borderRadius:12, padding:isMobile ? "10px 12px" : "11px 14px", fontSize:16, cursor:"pointer", flexShrink:0, transition:"all 0.2s" }}>
+                    style={{ background:emojiOpen?"rgba(217,119,6,0.08)":"transparent", border:`1px solid ${emojiOpen?"rgba(217,119,6,0.3)":"var(--cb-border)"}`, color:emojiOpen?"var(--cb-gold)":"var(--cb-muted)", borderRadius:isMobile ? 11 : 12, width:isMobile ? 38 : "auto", height:isMobile ? 42 : "auto", padding:isMobile ? 0 : "11px 14px", fontSize:isMobile ? 14 : 16, cursor:"pointer", flexShrink:0, transition:"all 0.2s" }}>
                     😊
                   </button>
 
@@ -1256,7 +1256,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
 
                   <button onClick={editingMsg?saveEdit:sendMsg}
                     disabled={!input.trim()&&!editingMsg||sending}
-                    style={{ width:46, height:46, borderRadius:isMobile ? 16 : 14, background:input.trim()||editingMsg?"linear-gradient(135deg,var(--cb-accent),var(--cb-accent2))":"transparent", color:"#fff", border:input.trim()||editingMsg?"none":"1px solid var(--cb-border)", fontSize:18, cursor:input.trim()||editingMsg?"pointer":"default", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all 0.2s", boxShadow:input.trim()?"0 4px 12px rgba(37,99,235,0.2)":"none", opacity:!input.trim()&&!editingMsg?0.5:1 }}>
+                    style={{ width:isMobile ? 42 : 46, height:isMobile ? 42 : 46, borderRadius:isMobile ? 14 : 14, background:input.trim()||editingMsg?"linear-gradient(135deg,var(--cb-accent),var(--cb-accent2))":"transparent", color:"#fff", border:input.trim()||editingMsg?"none":"1px solid var(--cb-border)", fontSize:isMobile ? 16 : 18, cursor:input.trim()||editingMsg?"pointer":"default", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all 0.2s", boxShadow:input.trim()?"0 4px 12px rgba(37,99,235,0.2)":"none", opacity:!input.trim()&&!editingMsg?0.5:1 }}>
                     {sending
                       ? <span style={{ width:18, height:18, border:"2px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.7s linear infinite", display:"inline-block" }}/>
                       : editingMsg ? "✓" : "➤"}

@@ -67,7 +67,7 @@ export default function Sidebar({
     <aside
       style={{
         ...s.root,
-        width: mobile ? "280px" : compact ? "78px" : "264px",
+        width: mobile ? "min(292px, calc(100vw - 28px))" : compact ? "78px" : "264px",
         position: mobile ? "fixed" : "sticky",
         transform: mobile ? `translateX(${mobileOpen ? "0" : "-100%"})` : "none",
         zIndex: mobile ? 120 : 20,
@@ -175,7 +175,7 @@ export default function Sidebar({
 
 const s = {
   root: {
-    height: "100vh",
+    height: "100dvh",
     background:
       "linear-gradient(180deg, var(--sidebar-bg) 0%, rgba(15, 23, 42, 0.95) 100%)",
     borderRight: "1px solid var(--border)",
@@ -192,9 +192,9 @@ const s = {
     display: "flex",
     alignItems: "center",
     gap: "12px",
-    padding: "18px 14px",
+    padding: "14px",
     borderBottom: "1px solid var(--border)",
-    minHeight: "72px",
+    minHeight: "66px",
   },
   mark: {
     width: "38px",
@@ -252,7 +252,7 @@ const s = {
   },
   userCard: {
     margin: "8px 14px 14px",
-    padding: "14px",
+    padding: "12px",
     background: "linear-gradient(135deg, var(--card-bg), rgba(var(--accent-rgb), 0.06))",
     border: "1px solid var(--border)",
     borderRadius: "16px",
@@ -311,7 +311,7 @@ const s = {
     display: "flex",
     alignItems: "center",
     gap: "12px",
-    padding: "12px 13px",
+    padding: "10px 12px",
     borderRadius: "12px",
     background: "transparent",
     border: "1px solid transparent",
@@ -338,6 +338,10 @@ const s = {
   navText: {
     flex: 1,
     textAlign: "left",
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   dot: {
     width: "7px",
@@ -348,7 +352,7 @@ const s = {
     boxShadow: "0 0 12px rgba(var(--accent-rgb), 0.6)",
   },
   bottom: {
-    padding: "12px 14px 14px",
+    padding: "10px 14px 12px",
     borderTop: "1px solid var(--border)",
     display: "flex",
     flexDirection: "column",
@@ -365,7 +369,7 @@ const s = {
     background: "linear-gradient(135deg, rgba(var(--accent-rgb), 0.08), var(--card-bg))",
     border: "1px solid var(--border-accent)",
     borderRadius: "14px",
-    padding: "12px",
+    padding: "10px 12px",
   },
   aiTitle: {
     fontSize: "12px",

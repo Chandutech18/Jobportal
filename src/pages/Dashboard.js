@@ -334,13 +334,13 @@ export default function Dashboard({ recruiterMode }) {
         onClose={() => setMobileMenuOpen(false)}
       />
       <main style={S.main}>
-        <div style={{...S.topbar,padding:isMobile ? "12px 14px" : S.topbar.padding,flexWrap:isMobile ? "wrap" : "nowrap",gap:isMobile ? "12px" : 0}}>
-          <div style={{display:"flex",alignItems:"center",gap:"12px",flex:1,minWidth:isMobile ? "100%" : "auto"}}>
-            {isMobile && <button onClick={()=>setMobileMenuOpen(true)} style={S.backBtn}>☰ Menu</button>}
-            <button onClick={goBack} style={S.backBtn}>← Back</button>
-            <div>
-              <div style={S.pageTitle}>{TITLES[sec]||"Dashboard"}</div>
-              <div>
+        <div style={{...S.topbar,padding:isMobile ? "10px 12px" : S.topbar.padding,flexWrap:isMobile ? "wrap" : "nowrap",gap:isMobile ? "10px" : 0}}>
+          <div style={{display:"flex",alignItems:"center",gap:isMobile ? "8px" : "12px",flex:1,minWidth:isMobile ? 0 : "auto",width:isMobile ? "100%" : "auto"}}>
+            {isMobile && <button onClick={()=>setMobileMenuOpen(true)} style={{...S.backBtn,padding:"8px 10px",flexShrink:0}}>☰</button>}
+            <button onClick={goBack} style={{...S.backBtn,padding:isMobile ? "8px 10px" : S.backBtn.padding,flexShrink:0}}>←</button>
+            <div style={{minWidth:0,flex:1}}>
+              <div style={{...S.pageTitle,fontSize:isMobile ? "16px" : S.pageTitle.fontSize,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{TITLES[sec]||"Dashboard"}</div>
+              <div style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                 {hist.slice(-3).map((h,i,arr)=>(
                   <span key={i} onClick={()=>{setSec(h);setHist(p=>p.slice(0,p.lastIndexOf(h)+1));}}
                     style={{color:i===arr.length-1?"var(--cb-gold)":"var(--cb-muted)",cursor:"pointer",fontSize:"11px"}}>
@@ -351,7 +351,7 @@ export default function Dashboard({ recruiterMode }) {
             </div>
           </div>
           <div
-            style={{display:"flex",alignItems:"center",gap:"10px",position:"relative"}}
+            style={{display:"flex",alignItems:"center",gap:isMobile ? "8px" : "10px",position:"relative",width:isMobile ? "100%" : "auto",justifyContent:isMobile ? "space-between" : "flex-start",minWidth:0}}
             onClickCapture={(e)=>{
               const title = e.target.closest?.("button")?.title;
               if (title === "Notifications") {
@@ -360,8 +360,10 @@ export default function Dashboard({ recruiterMode }) {
                 if (next) markNotificationsSeen();
               }
             }}>
-            <button onClick={()=>goTo("messages")} style={{...S.iconBtn,position:"relative"}} title="Messages">💬<span style={{...S.dot,background:"var(--cb-accent)"}}/></button>
-            <button style={{...S.iconBtn,position:"relative"}} title="Notifications">🔔<span style={{...S.dot,background:"var(--cb-danger)"}}/></button>
+            <div style={{display:"flex",gap:isMobile ? "8px" : "10px",flexShrink:0}}>
+              <button onClick={()=>goTo("messages")} style={{...S.iconBtn,position:"relative"}} title="Messages">💬<span style={{...S.dot,background:"var(--cb-accent)"}}/></button>
+              <button style={{...S.iconBtn,position:"relative"}} title="Notifications">🔔<span style={{...S.dot,background:"var(--cb-danger)"}}/></button>
+            </div>
             {showNotifications && (
               <NotificationPanel
                 notifications={notifications}
@@ -373,11 +375,11 @@ export default function Dashboard({ recruiterMode }) {
                 mobile={isMobile}
               />
             )}
-            <button onClick={()=>goTo("profile")} style={S.profileBtn}>
+            <button onClick={()=>goTo("profile")} style={{...S.profileBtn,padding:isMobile ? "6px 8px" : S.profileBtn.padding,minWidth:0,maxWidth:isMobile ? "calc(100vw - 118px)" : "none"}}>
               <div style={S.pAvatar}>{(user.name||"U")[0].toUpperCase()}</div>
-              <div style={{textAlign:"left"}}>
-                <div style={{fontSize:"13px",fontWeight:700,color:"var(--cb-text)"}}>{user.name}</div>
-                <div style={{fontSize:"11px",color:"var(--cb-muted)"}}>@{user.username||"user"} · {isRec?"Recruiter":"Seeker"}</div>
+              <div style={{textAlign:"left",minWidth:0}}>
+                <div style={{fontSize:"13px",fontWeight:700,color:"var(--cb-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</div>
+                <div style={{fontSize:"11px",color:"var(--cb-muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>@{user.username||"user"} · {isRec?"Recruiter":"Seeker"}</div>
               </div>
             </button>
           </div>
