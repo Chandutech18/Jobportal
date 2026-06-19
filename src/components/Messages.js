@@ -4,11 +4,19 @@ import { API, SOCKET_URL } from "../config";
 let   socket = null;
 const mkRoom = (a, b) => [String(a), String(b)].sort().join("_");
 const CALL_IDLE = { phase:"idle", mode:"video", peerId:null, peerName:"", muted:false, cameraOff:false };
+const isObjectId = (value) => /^[a-f\d]{24}$/i.test(String(value || "").trim());
 const normalizeId = (...values) => {
   for (const value of values) {
     if (value === undefined || value === null) continue;
     const normalized = String(value).trim();
     if (normalized) return normalized;
+  }
+  return "";
+};
+const normalizeUserId = (...values) => {
+  for (const value of values) {
+    const normalized = normalizeId(value);
+    if (isObjectId(normalized)) return normalized;
   }
   return "";
 };
@@ -47,6 +55,10 @@ const upsertMessage = (list, incoming) => {
 
   return [...list, incoming];
 };
+const removeMessageById = (list, messageId) =>
+  list.filter((msg) => String(msg._id || msg._tempId) !== String(messageId));
+const isNetworkError = (err) =>
+  err instanceof TypeError || /network|failed to fetch/i.test(String(err?.message || ""));
 
 // ─────────────────────────────────────────────────────
 //  Tiny helpers
@@ -372,7 +384,7 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
   const callStateRef    = useRef(CALL_IDLE);
   const incomingCallRef = useRef(null);
   const token       = localStorage.getItem("token");
-  const selfId      = normalizeId(user?.id, user?._id, user?.email);
+  const selfId      = normalizeUserId(user?.id, user?._id, user?.userId);
   const isMobile    = viewportW < 820;
   const isTablet    = viewportW < 1100;
   const mediaPreviewWidth = Math.max(160, Math.min(240, viewportW - (isMobile ? 132 : 360)));
@@ -391,6 +403,9 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
   }, [callState.phase, incomingCall]);
 
   const showToast = (msg, dur=3000) => { setToast(msg); setTimeout(()=>setToast(""),dur); };
+  const parseJsonSafe = async (res) => {
+    try { return await res.json(); } catch { return {}; }
+  };
   const rememberIncomingMessage = (messageId) => {
     if (!messageId) return false;
     const now = Date.now();
@@ -428,6 +443,22 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
     setCallState(CALL_IDLE);
     if (reason) showToast(reason);
   }, [resetMedia]);
+
+  const resolveMessagingTarget = useCallback(async (target) => {
+    const directId = normalizeUserId(target?.id, target?._id, target?.userId);
+    if (directId) return { ...target, id:directId };
+    if (!target?.username) return null;
+
+    try {
+      const res = await fetch(`${API}/api/auth/profile/${target.username}`);
+      const data = await parseJsonSafe(res);
+      const resolvedId = normalizeUserId(data?.user?.id, data?.user?._id, data?.user?.userId);
+      if (!res.ok || !resolvedId) return null;
+      return { ...target, ...data.user, id:resolvedId };
+    } catch {
+      return null;
+    }
+  }, []);
 
   const flushPendingIce = useCallback(async () => {
     if (!peerRef.current?.remoteDescription?.type || pendingIceRef.current.length === 0) return;
@@ -566,7 +597,8 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
 
   // ── Socket ────────────────────────────────────────────
   useEffect(()=>{
-      socket = io(SOCKET_URL, { auth:{token}, transports:["websocket","polling"], reconnection:true });
+    if (!token || !selfId) return;
+    socket = io(SOCKET_URL, { auth:{token}, transports:["websocket","polling"], reconnection:true });
     window._cbSocket = socket;
 
     socket.on("connect",()=>{
@@ -644,10 +676,10 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
       socket?.disconnect();
       window._cbSocket=null;
     };
-  },[]);
+  },[resetMedia, selfId, token]);
 
   useEffect(()=>{
-    if (normalizeId(preSelectedTarget?.id, preSelectedTarget?._id, preSelectedTarget?.email, preSelectedTarget?.userId)) {
+    if (normalizeUserId(preSelectedTarget?.id, preSelectedTarget?._id, preSelectedTarget?.userId) || preSelectedTarget?.username) {
       openConv(preSelectedTarget);
       if(onClearTarget) onClearTarget();
     }
@@ -660,30 +692,48 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
     setLoading(true);
     try {
       const res  = await fetch(`${API}/api/messages/rooms/list`,{headers:{Authorization:`Bearer ${token}`}});
-      const data = await res.json();
+      const data = await parseJsonSafe(res);
+      if (!res.ok) throw new Error(data.error || "Could not load conversations.");
       if (data.rooms) setConvs(data.rooms);
     } catch {}
     setLoading(false);
   };
 
   const openConv = async (target) => {
-    const targetId = normalizeId(target?.id, target?._id, target?.email, target?.userId);
+    if (!selfId) {
+      showToast("Your account is missing a valid messaging ID. Please log in again.");
+      return;
+    }
+
+    const resolvedTarget = await resolveMessagingTarget(target);
+    const targetId = normalizeUserId(resolvedTarget?.id, resolvedTarget?._id, resolvedTarget?.userId);
     if (!targetId) {
       showToast("Could not open this conversation.");
       return;
     }
     const room = mkRoom(selfId, targetId);
-    const rd   = { roomId:room, otherId:targetId, otherName:target.name||"User", otherUsername:target.username||(target.name||"").toLowerCase().replace(/[^a-z0-9]/g,""), otherRole:target.role||"other", otherOrg:target.org||target.organisation||"", otherProfile:{...target,id:targetId} };
+    const rd   = {
+      roomId:room,
+      otherId:targetId,
+      otherName:resolvedTarget?.name||target.name||"User",
+      otherUsername:resolvedTarget?.username||(resolvedTarget?.name||target.name||"").toLowerCase().replace(/[^a-z0-9]/g,""),
+      otherRole:resolvedTarget?.role||target.role||"other",
+      otherOrg:resolvedTarget?.org||resolvedTarget?.organisation||target.org||target.organisation||"",
+      otherProfile:{...resolvedTarget,...target,id:targetId},
+    };
     setActiveRoom(rd); activeRef.current=rd;
     setMsgs([]); setMsgLoading(true); setReplyTo(null); setEditingMsg(null);
     socket?.emit("join_room", room);
 
     try {
       const res  = await fetch(`${API}/api/messages/${room}`,{headers:{Authorization:`Bearer ${token}`}});
-      const data = await res.json();
+      const data = await parseJsonSafe(res);
+      if (!res.ok) throw new Error(data.error || "Could not load messages.");
       if (data.messages) setMsgs(data.messages);
       await fetch(`${API}/api/messages/${room}/seen-all`,{method:"PUT",headers:{Authorization:`Bearer ${token}`}});
-    } catch {}
+    } catch (err) {
+      showToast(err.message || "Could not open this conversation.");
+    }
     setMsgLoading(false);
     setConvs(p=>p.map(c=>c.roomId===room?{...c,unread:0}:c));
     setTimeout(()=>inputRef.current?.focus(),100);
@@ -701,10 +751,18 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
 
     try {
       const res  = await fetch(`${API}/api/messages`,{ method:"POST", headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`}, body:JSON.stringify({ roomId:activeRoom.roomId, text, recipientId:activeRoom.otherId, replyTo:replyTo?._id }) });
-      const data = await res.json();
-      if (data.message) setMsgs((prev)=>upsertMessage(prev, data.message));
-    } catch {
-      socket?.emit("send_message_fallback",{roomId:activeRoom.roomId,message:optimistic,recipientId:activeRoom.otherId});
+      const data = await parseJsonSafe(res);
+      if (!res.ok || !data.message) throw new Error(data.error || "Could not send message.");
+      setMsgs((prev)=>upsertMessage(prev, data.message));
+    } catch (err) {
+      if (isNetworkError(err)) {
+        socket?.emit("send_message_fallback",{roomId:activeRoom.roomId,message:optimistic,recipientId:activeRoom.otherId});
+        showToast("Server connection is unstable. Sent live only for now.", 4000);
+      } else {
+        setMsgs((prev)=>removeMessageById(prev, tempId));
+        setInput(text);
+        showToast(err.message || "Could not send message.");
+      }
     }
     setSending(false);
   };
@@ -716,9 +774,10 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
     fd.append("file",file); fd.append("roomId",activeRoom.roomId); fd.append("recipientId",activeRoom.otherId||"");
     try {
       const res  = await fetch(`${API}/api/messages/upload`,{method:"POST",headers:{Authorization:`Bearer ${token}`},body:fd});
-      const data = await res.json();
+      const data = await parseJsonSafe(res);
+      if (!res.ok || !data.message) throw new Error(data.error || "Upload failed.");
       if (data.message) setMsgs((prev)=>upsertMessage(prev, data.message));
-    } catch { showToast("❌ Upload failed"); }
+    } catch (err) { showToast(err.message || "Upload failed"); }
     setUploadProg(0);
   };
 
@@ -729,9 +788,19 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
     setMsgs(p=>[...p,msg]);
     try {
       const res  = await fetch(`${API}/api/messages`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({roomId:activeRoom.roomId,text,type:"interview",interview:form,recipientId:activeRoom.otherId})});
-      const data = await res.json();
+      const data = await parseJsonSafe(res);
+      if (!res.ok || !data.message) throw new Error(data.error || "Could not send interview invitation.");
       if(data.message) setMsgs((prev)=>upsertMessage(prev, data.message));
-    } catch {}
+    } catch (err) {
+      if (isNetworkError(err)) {
+        socket?.emit("send_message_fallback",{roomId:activeRoom.roomId,message:msg,recipientId:activeRoom.otherId});
+        showToast("Invite sent live only for now. It may not be saved yet.", 4000);
+      } else {
+        setMsgs((prev)=>removeMessageById(prev, tempId));
+        showToast(err.message || "Could not send interview invitation.");
+        return;
+      }
+    }
     setShowInterview(false);
     showToast("📅 Interview invitation sent!");
   };
@@ -1208,4 +1277,3 @@ export default function Messages({ user, preSelectedTarget, onClearTarget }) {
     </>
   );
 }
-

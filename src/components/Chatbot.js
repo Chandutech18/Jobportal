@@ -181,7 +181,6 @@ export default function Chatbot() {
 
       <div style={{ ...s.quickWrap, padding: isMobile ? "10px 12px" : "10px 16px" }}>
         <div style={{ fontSize: "11px", color: "#334155", fontWeight: 600, marginBottom: "7px" }}>
-          Quick Questions ->
         </div>
         <div
           style={{
