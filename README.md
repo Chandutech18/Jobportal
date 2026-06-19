@@ -19,26 +19,23 @@ That command starts the React app from `mini/` and binds it to `0.0.0.0`, so it 
 
 Example:
 
-- App: `http://10.79.174.190:3000`
-- API: `http://10.79.174.190:5000`
+- App: `http://10.21.186.190:3000`
+- API: `http://10.21.186.190:5000`
 
 ## Deploy to Vercel
 
-The Vercel app at `https://jobportal-gules-mu.vercel.app/` is only the React frontend. It cannot call `http://10.79.174.190:5000` because that is a private local-network address.
+The Vercel app at `https://jobportal-gules-mu.vercel.app/` is only the React frontend. It cannot call `http://10.21.186.190:5000` because that is a private local-network address.
 
-Deploy the Express backend in `server/` to a public Node host such as Render, Railway, Fly.io, or a separate Vercel serverless setup. After you have a public backend URL, add this environment variable in the Vercel project settings for the frontend:
+Deploy the Express backend in `server/` to a public Node host such as Railway, Render, Fly.io, or a separate Vercel serverless setup. In Railway, open the backend service, go to **Settings -> Domains**, and copy the generated public URL. It should look similar to `https://jobportal-production.up.railway.app`.
 
-```text
-REACT_APP_API_URL=https://your-public-backend-url
-```
-
-Then redeploy the frontend. If you use a separate Socket.IO URL, also set:
+Add these environment variables in the **Vercel project settings for the frontend**, not in Railway:
 
 ```text
-REACT_APP_SOCKET_URL=https://your-public-backend-url
+REACT_APP_API_URL=https://jobportal-production.up.railway.app
+REACT_APP_SOCKET_URL=https://jobportal-production.up.railway.app
 ```
 
-Do not set `REACT_APP_API_URL` to `localhost`, `127.0.0.1`, or a `10.x.x.x` / `192.168.x.x` private IP for production.
+Replace the example domain with your actual Railway domain, then redeploy the frontend. Do not set `REACT_APP_API_URL` to `localhost`, `127.0.0.1`, a `10.x.x.x` / `192.168.x.x` private IP, or an example placeholder in production.
 
 ## Mobile testing
 
